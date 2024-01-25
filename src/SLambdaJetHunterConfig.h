@@ -14,7 +14,7 @@
 #include <vector>
 #include <utility>
 // analysis utilities
-#include "/sphenix/user/danderson/eec/SCorrelatorUtilities/CstInfo.h"
+#include "/sphenix/user/danderson/eec/SCorrelatorUtilities/GenTools.h"
 #include "/sphenix/user/danderson/eec/SCorrelatorUtilities/JetTools.h"
 
 // make common namespaces implicit

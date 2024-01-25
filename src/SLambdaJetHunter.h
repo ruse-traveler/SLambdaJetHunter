@@ -24,7 +24,7 @@
 // f4a utilities
 #include <fun4all/SubsysReco.h>
 // analysis utilities
-#include "SLambdaHunterConfig.h"
+#include "SLambdaJetHunterConfig.h"
 #include "/sphenix/user/danderson/eec/SCorrelatorUtilities/EvtTools.h"
 #include "/sphenix/user/danderson/eec/SCorrelatorUtilities/JetTools.h"
 #include "/sphenix/user/danderson/eec/SCorrelatorUtilities/CstTools.h"
@@ -53,7 +53,7 @@ namespace SColdQcdCorrelatorAnalysis {
        enum Recomb {E, Pt, Pt2, Et, Et2};
 
        // ctor/dtor
-       SLambdaJetHunter(const string &name = "SLambdaJetHunter");
+       SLambdaJetHunter(const string &name = "SLambdaJetHunter", const bool debug = false);
        SLambdaJetHunter(SLambdaJetHunterConfig& config);
        ~SLambdaJetHunter() override;
 
@@ -82,6 +82,12 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<JetInfo>         m_jetInfo;
       vector<vector<CstInfo>> m_cstInfo;
       vector<vector<ParInfo>> m_lambdaInfo;
+
+      // analysis methods (*.ana.h)
+      /* TODO will go here */
+
+      // system methods (*.sys.h)
+      /* TODO will go here */
 
   };  // end SLambdaJetHunter
 
