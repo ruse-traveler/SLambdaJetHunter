@@ -1,0 +1,13 @@
+output/
+submit/
+src/*
+!src/SLambdaJetHunter.h
+!src/SLambdaJetHunter.cc
+!src/SLambdaJetHunter.ana.h
+!src/SLambdaJetHunter.sys.h
+!src/SLambdaJetHunterConfig.h
+!src/SLambdaJetHunterLinkDef.h
+!src/autogen.sh
+!src/configure.ac
+!src/Makefile.am
+!src/sphx-build
