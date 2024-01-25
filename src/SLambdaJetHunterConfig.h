@@ -43,6 +43,8 @@ namespace SColdQcdCorrelatorAnalysis {
     uint32_t jetRecomb = 0;
 
     // acceptance parameters
+    pair<float,   float>   vzAccept;
+    pair<float,   float>   vrAccept;
     pair<ParInfo, ParInfo> parAccept;
     pair<JetInfo, JetInfo> jetAccept;
 
