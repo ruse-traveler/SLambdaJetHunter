@@ -13,9 +13,9 @@
 #include <string>
 #include <utility>
 // analysis utilities
-#include "/sphenix/user/danderson/eec/SCorrelatorUtilities/EvtTools.h"
-#include "/sphenix/user/danderson/eec/SCorrelatorUtilities/GenTools.h"
-#include "/sphenix/user/danderson/eec/SCorrelatorUtilities/JetTools.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/EvtTools.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/GenTools.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/JetTools.h"
 #include "/sphenix/user/danderson/install/include/slambdajethunter/SLambdaJetHunter.h"
 #include "/sphenix/user/danderson/install/include/slambdajethunter/SLambdaJetHunterConfig.h"
 
@@ -61,10 +61,12 @@ namespace LambdaJetHunterOptions {
 
     // create configuration and return
     SLambdaJetHunterConfig cfg {
+      .verbosity   = verbosity,
       .isDebugOn   = true,
       .isEmbed     = false,
       .moduleName  = "SLambdaJetHunter",
       .outTreeName = "LambdaJetTree",
+      .outFileName = outFile,
       .rJet        = 0.4,
       .jetAlgo     = SLambdaJetHunter::Algo::AntiKt,
       .jetRecomb   = SLambdaJetHunter::Recomb::Pt,

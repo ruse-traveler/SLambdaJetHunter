@@ -23,6 +23,7 @@
 
 // load libraries
 R__LOAD_LIBRARY(/sphenix/user/danderson/install/lib/libslambdajethunter.so)
+R__LOAD_LIBRARY(/sphenix/user/danderson/install/lib/libscorrelatorutilities.so)
 
 // make common namespaces implicit
 using namespace std;
