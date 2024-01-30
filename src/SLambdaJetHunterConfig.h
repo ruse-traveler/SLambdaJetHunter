@@ -38,9 +38,9 @@ namespace SColdQcdCorrelatorAnalysis {
     string outTreeName   = "LambdaJetTree";
 
     // jet options
-    float    rJet      = 0.4;
-    uint32_t jetAlgo   = 0;
-    uint32_t jetRecomb = 0;
+    float  rJet      = 0.4;
+    string jetAlgo   = "antikt_algorithm";
+    string jetRecomb = "pt_scheme";
 
     // acceptance parameters
     pair<float,   float>   vzAccept;

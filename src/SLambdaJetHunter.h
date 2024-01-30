@@ -11,11 +11,15 @@
 #define SLAMBDAJETHUNTER_H
 
 // c++ utilities
+#include <map>
 #include <string>
 #include <vector>
 // root libraries
 #include <TFile.h>
 #include <TTree.h>
+// fastjet libraries
+#include <fastjet/PseudoJet.hh>
+#include <fastjet/JetDefinition.hh>
 // f4a utilities
 #include <fun4all/SubsysReco.h>
 // analysis utilities
@@ -33,6 +37,7 @@ using namespace SColdQcdCorrelatorAnalysis::SCorrelatorUtilities;
 class PHCompositeNode;
 
 
+
 namespace SColdQcdCorrelatorAnalysis {
 
   // SLambdaJetHunter definition ----------------------------------------------
@@ -40,10 +45,6 @@ namespace SColdQcdCorrelatorAnalysis {
   class SLambdaJetHunter : public SubsysReco {
 
      public:
-
-       // jet algorithm options
-       enum Algo   {AntiKt, Kt, CA};
-       enum Recomb {E, Pt, Pt2, Et, Et2};
 
        // ctor/dtor
        SLambdaJetHunter(const string &name = "SLambdaJetHunter", const bool debug = false);
@@ -76,13 +77,47 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<vector<CstInfo>> m_cstInfo;
       vector<vector<ParInfo>> m_lambdaInfo;
 
+      // fastjet output
+      vector<fastjet::PseudoJet> m_jets;
+
       // analysis methods (*.ana.h)
-      /* TODO will go here */
+      void    MakeJets(PHCompositeNode* topNode);
+      void    GrabSubEvents();
+      void    GrabOutputInfo();
+      bool    IsGoodParticle(ParInfo& particle);
+      bool    IsLambda();
+      ParInfo FindLambda(const int barcode);
 
       // system methods (*.sys.h)
       void InitTree();
       void InitOutput();
       void SaveAndCloseOutput();
+      void ResetOutput();
+
+       // map of user input onto fastjet options
+       map<string, fastjet::JetAlgorithm> m_mapJetAlgo = {
+        {"kt_algorithm",                    fastjet::JetAlgorithm::kt_algorithm},
+        {"cambridge_algorithm",             fastjet::JetAlgorithm::cambridge_algorithm},
+        {"antikt_algorithm",                fastjet::JetAlgorithm::antikt_algorithm},
+        {"genkt_algorithm",                 fastjet::JetAlgorithm::genkt_algorithm},
+        {"cambridge_for_passive_algorithm", fastjet::JetAlgorithm::cambridge_for_passive_algorithm},
+        {"genkt_for_passive_algorithm",     fastjet::JetAlgorithm::genkt_for_passive_algorithm},
+        {"ee_kt_algorithm",                 fastjet::JetAlgorithm::ee_kt_algorithm},
+        {"ee_genkt_algorithm",              fastjet::JetAlgorithm::ee_genkt_algorithm},
+        {"plugin_algorithm",                fastjet::JetAlgorithm::plugin_algorithm}
+      };
+      map<string, fastjet::RecombinationScheme> m_mapRecomb = {
+        {"E_scheme",        fastjet::RecombinationScheme::E_scheme},
+        {"pt_scheme",       fastjet::RecombinationScheme::pt_scheme},
+        {"pt2_scheme",      fastjet::RecombinationScheme::pt2_scheme},
+        {"Et_scheme",       fastjet::RecombinationScheme::Et_scheme},
+        {"Et2_scheme",      fastjet::RecombinationScheme::Et2_scheme},
+        {"BIpt_scheme",     fastjet::RecombinationScheme::BIpt_scheme},
+        {"BIpt2_scheme",    fastjet::RecombinationScheme::BIpt2_scheme},
+        {"WTA_pt_scheme",   fastjet::RecombinationScheme::WTA_pt_scheme},
+        {"WTA_modp_scheme", fastjet::RecombinationScheme::WTA_modp_scheme},
+        {"external_scheme", fastjet::RecombinationScheme::external_scheme}
+      };
 
   };  // end SLambdaJetHunter
 
