@@ -29,9 +29,12 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::InitTree() Initializing output tree" << endl;
     }
 
-    // TODO add remaining members
+    // set up output tree
     m_outTree = new TTree(m_config.outTreeName.data(), "A tree of lambda-tagged jets");
-    m_outTree -> Branch("EvtInfo", "GenInfo", &m_genEvtInfo, 32000, 99);
+    m_outTree -> Branch("EvtInfo",    "GenInfo", &m_genEvtInfo, 32000, 99);
+    m_outTree -> Branch("JetInfo",    "JetInfo", &m_jetInfo,    32000, 99);
+    m_outTree -> Branch("CstInfo",    "CstInfo", &m_cstInfo,    32000, 99);
+    m_outTree -> Branch("LambdaInfo", "ParInfo", &m_lambdaInfo, 32000, 99);
     return;
 
   }  // end 'InitTree()'
@@ -69,6 +72,23 @@ namespace SColdQcdCorrelatorAnalysis {
     return;
 
   }  // end 'SaveAndCloseOutput()'
+
+
+
+  void SLambdaJetHunter::ResetOutput() {
+
+    // print debug statement
+    if (m_config.isDebugOn) {
+      cout << "SLambdaJetHunter::ResetOuput() Resetting output containers" << endl;
+    }
+
+    m_genEvtInfo.Reset();
+    m_jetInfo.clear();
+    m_cstInfo.clear();
+    m_lambdaInfo.clear();
+    return;
+
+  }  // end 'ResetOutput()'
 
 }  // end SColdQcdCorrelatorAnalysis namespace
 
