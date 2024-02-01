@@ -80,6 +80,52 @@ namespace SColdQcdCorrelatorAnalysis {
       // fastjet output
       vector<fastjet::PseudoJet> m_jets;
 
+      // output event variables
+      //   - FIXME remove when i/o of utility structs is ready
+      uint64_t m_evtNJets;
+      uint64_t m_evtNLambdas;
+      uint64_t m_evtNTaggedJets;
+      uint64_t m_evtNChrgPars;
+      uint64_t m_evtNNeuPars;
+      double   m_evtSumEPar;
+      double   m_evtVtxX;
+      double   m_evtVtxY;
+      double   m_evtVtxZ;
+      // output parton variables
+      pair<int,   int>     m_evtPartID;
+      pair<double, double> m_evtPartPx;
+      pair<double, double> m_evtPartPy;
+      pair<double, double> m_evtPartPz;
+      pair<double, double> m_evtPartE;
+      // output jet variables
+      vector<bool>     m_jetHasLambda;
+      vector<uint64_t> m_jetNCst;
+      vector<uint64_t> m_jetID;
+      vector<double>   m_jetE;
+      vector<double>   m_jetPt;
+      vector<double>   m_jetEta;
+      vector<double>   m_jetPhi;
+      // output constituent variables
+      vector<vector<int>>    m_cstID;
+      vector<vector<int>>    m_cstJetID;
+      vector<vector<int>>    m_cstEmbedID;
+      vector<vector<double>> m_cstZ;
+      vector<vector<double>> m_cstDr;
+      vector<vector<double>> m_cstE;
+      vector<vector<double>> m_cstPt;
+      vector<vector<double>> m_cstEta;
+      vector<vector<double>> m_cstPhi;
+      // output lambda variables
+      vector<vector<int>>    m_lambdaID;
+      vector<vector<int>>    m_lambdaJetID;
+      vector<vector<int>>    m_lambdaEmbedID;
+      vector<vector<double>> m_lambdaZ;
+      vector<vector<double>> m_lambdaDr;
+      vector<vector<double>> m_lambdaE;
+      vector<vector<double>> m_lambdaPt;
+      vector<vector<double>> m_lambdaEta;
+      vector<vector<double>> m_lambdaPhi;
+
       // analysis methods (*.ana.h)
       void    MakeJets(PHCompositeNode* topNode);
       void    GrabSubEvents();
