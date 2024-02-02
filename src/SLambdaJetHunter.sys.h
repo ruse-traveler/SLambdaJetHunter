@@ -122,10 +122,16 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::ResetOuput() Resetting output containers" << endl;
     }
 
+    // reset output variables
     m_genEvtInfo.Reset();
     m_jetInfo.clear();
     m_cstInfo.clear();
     m_lambdaInfo.clear();
+
+    // reset lists/associations
+    m_vecSubEvts.clear();
+    m_mapCstJetAssoc.clear();
+    m_mapLambdaJetAssoc.clear();
 
     // FIXME remove when i/o of utility structs is ready
     m_evtNJets = 999.;

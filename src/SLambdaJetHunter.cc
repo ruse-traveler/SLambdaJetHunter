@@ -90,11 +90,13 @@ namespace SColdQcdCorrelatorAnalysis {
     // make sure output containers are emtpy
     ResetOutput();
 
-    // cluster jets
+    // run analysis routines
+    GrabEventInfo(topNode);
     MakeJets(topNode);
+    HuntLambdas(topNode);
 
     // fill tree and return
-    m_outTree -> Fill();
+    FillOutputTree();
     return Fun4AllReturnCodes::EVENT_OK;
 
   }  // end 'process_event(PHCompositeNode*)'

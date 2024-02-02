@@ -31,6 +31,7 @@
 
 // make common namespaces implicit
 using namespace std;
+using namespace fastjet;
 using namespace SColdQcdCorrelatorAnalysis::SCorrelatorUtilities;
 
 // forward declarations
@@ -78,7 +79,16 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<vector<ParInfo>> m_lambdaInfo;
 
       // fastjet output
-      vector<fastjet::PseudoJet> m_jets;
+      vector<PseudoJet> m_jets;
+      vector<CstInfo>   m_csts;
+
+      // list of subevents
+      vector<int> m_vecSubEvts;
+
+      // jet associations
+      //   TODO figure out set vs. map...
+      map<int, int> m_mapCstJetAssoc;
+      map<int, int> m_mapLambdaJetAssoc;
 
       // output event variables
       //   - FIXME remove when i/o of utility structs is ready
@@ -127,11 +137,12 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<vector<double>> m_lambdaPhi;
 
       // analysis methods (*.ana.h)
+      void    GrabEventInfo(PHCompositeNode* topNode);
       void    MakeJets(PHCompositeNode* topNode);
-      void    GrabSubEvents();
-      void    GrabOutputInfo();
+      void    HuntLambdas(PHCompositeNode* topNode);
+      void    FillOutputTree();
       bool    IsGoodParticle(ParInfo& particle);
-      bool    IsLambda();
+      bool    IsLambda(ParInfo& particle);
       ParInfo FindLambda(const int barcode);
 
       // system methods (*.sys.h)
@@ -140,8 +151,13 @@ namespace SColdQcdCorrelatorAnalysis {
       void SaveAndCloseOutput();
       void ResetOutput();
 
-       // map of user input onto fastjet options
-       map<string, fastjet::JetAlgorithm> m_mapJetAlgo = {
+      // class-wide constants
+      struct Const {
+        int pidLambda;
+      }  m_const = {3122};
+
+      // map of user input onto fastjet options
+      map<string, fastjet::JetAlgorithm> m_mapJetAlgo = {
         {"kt_algorithm",                    fastjet::JetAlgorithm::kt_algorithm},
         {"cambridge_algorithm",             fastjet::JetAlgorithm::cambridge_algorithm},
         {"antikt_algorithm",                fastjet::JetAlgorithm::antikt_algorithm},
