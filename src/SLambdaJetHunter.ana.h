@@ -10,6 +10,8 @@
 #ifndef SLAMBDAJETHUNTER_ANA_H
 #define SLAMBDAJETHUNTER_ANA_H
 
+// c++ utilities
+#include <cmath>
 // fastjet libraries
 #include <fastjet/PseudoJet.hh>
 #include <fastjet/JetDefinition.hh>
@@ -124,7 +126,20 @@ namespace SColdQcdCorrelatorAnalysis {
 
         // grab cst info
         m_csts.emplace_back( m_jets[iJet].constituents()[iCst] );
+
+        // run calculations
+        const float pCst  = hypot( m_csts.back().px, m_csts.back().py, m_csts.back().pz );
+        const float pJet  = hypot( m_jetInfo.back().px, m_jetInfo.back().py, m_jetInfo.back().pz );
+        const float dfCst = m_csts.back().phi - m_jetInfo.back().phi;
+        const float dhCst = m_csts.back().eta - m_jetInfo.back().eta;
+
+        // grab remaining cst info
         m_csts.back().cstID = iCst;
+        m_csts.back().z     = pCst / pJet;
+        m_csts.back().dr    = hypot( dfCst, dhCst );
+
+        // set cst-jet association
+        m_mapCstJetAssoc.emplace( m_csts.back().cstID,  m_jetInfo.back().jetID );
 
         /* TODO analysis steps
          *   (1) retrieve particle based on user_index
@@ -153,6 +168,7 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // collect event info
+    //   - FIXME remove when i/o of utility structs is ready
     m_evtNJets       = m_jetInfo.size();
     m_evtNLambdas    = 0;  // TODO fill in when ready
     m_evtNTaggedJets = 0;  // TODO fill in when ready
@@ -164,6 +180,7 @@ namespace SColdQcdCorrelatorAnalysis {
     m_evtVtxZ        = m_genEvtInfo.partons.first.vz;
 
     // collect parton info
+    //   - FIXME remove when i/o of utility structs is ready
     m_evtPartID = make_pair( m_genEvtInfo.partons.first.pid, m_genEvtInfo.partons.second.pid );
     m_evtPartPx = make_pair( m_genEvtInfo.partons.first.px,  m_genEvtInfo.partons.second.px  );
     m_evtPartPy = make_pair( m_genEvtInfo.partons.first.py,  m_genEvtInfo.partons.second.py  );
@@ -171,14 +188,50 @@ namespace SColdQcdCorrelatorAnalysis {
     m_evtPartE  = make_pair( m_genEvtInfo.partons.first.ene, m_genEvtInfo.partons.second.ene );
 
     // collect jet information
+    //   - FIXME remove when i/o of utility structs is ready
     for (JetInfo& jet : m_jetInfo) {
+      m_jetHasLambda.push_back( false );
       m_jetNCst.push_back( jet.nCsts );
-      m_jetID.push_back (  jet.jetID );
-      m_jetE.push_back(    jet.ene   );
-      m_jetPt.push_back(   jet.pt    );
-      m_jetEta.push_back(  jet.eta   );
-      m_jetPhi.push_back(  jet.phi   );
-    }
+      m_jetID.push_back( jet.jetID );
+      m_jetE.push_back( jet.ene );
+      m_jetPt.push_back( jet.pt );
+      m_jetEta.push_back( jet.eta );
+      m_jetPhi.push_back( jet.phi );
+    }  // end jet loop
+
+    // collect cst information
+    //   - FIXME remove when i/o of utility structs is ready
+    m_cstID.resize( m_cstInfo.size() );
+    m_cstJetID.resize( m_cstInfo.size() );
+    m_cstEmbedID.resize( m_cstInfo.size() );
+    m_cstZ.resize( m_cstInfo.size() );
+    m_cstDr.resize( m_cstInfo.size() );
+    m_cstE.resize( m_cstInfo.size() );
+    m_cstPt.resize( m_cstInfo.size() );
+    m_cstEta.resize( m_cstInfo.size() );
+    m_cstPhi.resize( m_cstInfo.size() );
+    for (size_t iJet = 0; iJet < m_cstInfo.size(); iJet++) {
+      m_cstID[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstJetID[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstEmbedID[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstZ[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstDr[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstE[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstPt[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstEta[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstPhi[iJet].resize( m_cstInfo[iJet].size() );
+      for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
+        m_cstID[iJet][iCst]      = m_cstInfo[iJet][iCst].cstID;
+        m_cstJetID[iJet][iCst]   = m_mapCstJetAssoc[m_cstInfo[iJet][iCst].cstID] ;
+        m_cstEmbedID[iJet][iCst] = m_cstInfo[iJet][iCst].embedID;
+        m_cstZ[iJet][iCst]       = m_cstInfo[iJet][iCst].z;
+        m_cstDr[iJet][iCst]      = m_cstInfo[iJet][iCst].dr;
+        m_cstE[iJet][iCst]       = m_cstInfo[iJet][iCst].ene;
+        m_cstPt[iJet][iCst]      = m_cstInfo[iJet][iCst].pt;
+        m_cstEta[iJet][iCst]     = m_cstInfo[iJet][iCst].eta;
+        m_cstPhi[iJet][iCst]     = m_cstInfo[iJet][iCst].phi;
+      }
+    }  // end cst loop
 
     m_outTree -> Fill();
     return;

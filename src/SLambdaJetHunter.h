@@ -86,7 +86,6 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<int> m_vecSubEvts;
 
       // jet associations
-      //   TODO figure out set vs. map...
       map<int, int> m_mapCstJetAssoc;
       map<int, int> m_mapLambdaJetAssoc;
 
