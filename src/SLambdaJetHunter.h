@@ -20,6 +20,8 @@
 // fastjet libraries
 #include <fastjet/PseudoJet.hh>
 #include <fastjet/JetDefinition.hh>
+// hepmc libraries
+#include <HepMC/GenParticle.h>
 // f4a utilities
 #include <fun4all/SubsysReco.h>
 // analysis utilities
@@ -136,13 +138,14 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<vector<double>> m_lambdaPhi;
 
       // analysis methods (*.ana.h)
-      void    GrabEventInfo(PHCompositeNode* topNode);
-      void    MakeJets(PHCompositeNode* topNode);
-      void    HuntLambdas(PHCompositeNode* topNode);
-      void    FillOutputTree();
-      bool    IsGoodParticle(ParInfo& particle);
-      bool    IsLambda(ParInfo& particle);
-      ParInfo FindLambda(const int barcode);
+      void                GrabEventInfo(PHCompositeNode* topNode);
+      void                MakeJets(PHCompositeNode* topNode);
+      void                HuntLambdas(PHCompositeNode* topNode);
+      void                FillOutputTree();
+      bool                IsGoodParticle(ParInfo& particle);
+      bool                IsLambda(ParInfo& particle);
+      ParInfo             FindLambda(const int barcode);
+      HepMC::GenParticle* GetParticle(const int barcode, PHCompositeNode* topNode);
 
       // system methods (*.sys.h)
       void InitTree();

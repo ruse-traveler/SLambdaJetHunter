@@ -145,10 +145,13 @@ namespace SColdQcdCorrelatorAnalysis {
         // set cst-jet association
         m_mapCstJetAssoc.emplace( m_csts.back().cstID,  m_jetInfo.back().jetID );
 
-        //
+        // grab particle based on barcode
+        HepMC::GenParticle* initiator = GetParticle(m_csts.back().cstID, topNode);
+        if (initiator) {
+          cout << "CHECK1 grabbed barcode = " << initiator -> barcode() << endl;
+        }
 
         /* TODO analysis steps
-         *   (1) retrieve particle based on user_index
          *   (2) loop through parents until a lambda is found
          *   (3) if lambda hasn't already been added, shove into list
          *   (4) continue on
@@ -250,7 +253,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::IsGoodParticle(ParInfo) checking if particle is good" << endl;
+      cout << "SLambdaJetHunter::IsGoodParticle(ParInfo&) checking if particle is good" << endl;
     }
 
     // check charge if needed
@@ -271,7 +274,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::IsLambda() checking if particle is a lambda" << endl;
+      cout << "SLambdaJetHunter::IsLambda(ParInfo&) checking if particle is a lambda" << endl;
     }
 
     const bool isLambda = (particle.pid == m_const.pidLambda);
@@ -288,6 +291,36 @@ namespace SColdQcdCorrelatorAnalysis {
     return lambda;
 
   }  // end 'FindLambda(int)'
+
+
+
+  HepMC::GenParticle* SLambdaJetHunter::GetParticle(const int barcode, PHCompositeNode* topNode) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::GetParticle(int, PHCompositeNode*) getting particle based on barcode" << endl;
+    }
+
+    // loop over subevents
+    HepMC::GenParticle* parToGrab = NULL;
+    for (const int subEvt : m_vecSubEvts) {
+
+      // loop over particles
+      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
+      for (
+        HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
+        hepPar != genEvt -> particles_end();
+        ++hepPar
+      ) {
+        if ((*hepPar) -> barcode() == barcode) {
+          parToGrab = *hepPar;
+          break;
+        }
+      }  // end particle loop
+    }  // end subevent loop
+    return parToGrab;
+
+  }  // end 'GetParticle(int, PHCompositeNode*)'
 
 }  // end SColdQcdCorrelatorAnalysis namespace
 
