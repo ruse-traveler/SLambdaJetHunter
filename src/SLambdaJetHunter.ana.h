@@ -42,7 +42,11 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::GrabEventInfo() Grabbing event info" << endl;
     }
 
-    m_vecSubEvts = GrabSubevents(topNode);
+    // FIXME turn on subevents after figuring out why
+    //   IsGoodParticle and IsFinalState aren't removing
+    //   non FS particles
+    //m_vecSubEvts = GrabSubevents(topNode);
+    m_vecSubEvts = {SubEvt::NotEmbedSignal};
     m_genEvtInfo.SetInfo(topNode, m_config.isEmbed, m_vecSubEvts);
     return;
 
@@ -140,6 +144,8 @@ namespace SColdQcdCorrelatorAnalysis {
 
         // set cst-jet association
         m_mapCstJetAssoc.emplace( m_csts.back().cstID,  m_jetInfo.back().jetID );
+
+        //
 
         /* TODO analysis steps
          *   (1) retrieve particle based on user_index
@@ -247,9 +253,15 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::IsGoodParticle(ParInfo) checking if particle is good" << endl;
     }
 
-    // run checks and return
+    // check charge if needed
+    bool isGoodCharge = true;
+    if (m_config.isCharged) {
+      isGoodCharge = (particle.charge != 0.);
+    }
+
+    // run other checks and return
     const bool isInAccept = IsInAcceptance(particle, m_config.parAccept.first, m_config.parAccept.second);
-    return isInAccept;
+    return (isGoodCharge && isInAccept);
 
   }  // end 'IsGoodParticle(ParInfo&)'
 

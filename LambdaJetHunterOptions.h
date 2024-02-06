@@ -67,6 +67,7 @@ namespace LambdaJetHunterOptions {
       .moduleName  = "SLambdaJetHunter",
       .outTreeName = "LambdaJetTree",
       .outFileName = outFile,
+      .isCharged   = true,
       .rJet        = 0.4,
       .jetAlgo     = "antikt_algorithm",
       .jetRecomb   = "pt_scheme",
