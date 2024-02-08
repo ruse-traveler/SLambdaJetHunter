@@ -28,30 +28,38 @@ using namespace SColdQcdCorrelatorAnalysis::SCorrelatorUtilities;
 
 namespace LambdaJetHunterOptions {
 
-  SLambdaJetHunterConfig GetConfig(const int verbosity, const string outFile) {
+  // acceptance cuts ----------------------------------------------------------
 
-    // acceptance cuts ----------------------------------------------------------
+  // event acceptance
+  const pair<float, float> vzEvtRange = {-10., 10.};
+  const pair<float, float> vrEvtRange = {0.0,  0.418};
 
-    // event acceptance
-    const pair<float, float> vzEvtRange = {-10., 10.};
-    const pair<float, float> vrEvtRange = {0.0,  0.418};
+  // particle acceptance
+  const pair<float, float> ptParRange  = {0.,   100.};
+  const pair<float, float> etaParRange = {-1.1, 1.1};
 
-    // particle acceptance
-    const pair<float, float> ptParRange  = {0.,   100.};
-    const pair<float, float> etaParRange = {-1.1, 1.1};
+  // jet acceptance
+  const pair<float, float> ptJetRange  = {0.1, 100.};
+  const pair<float, float> etaJetRange = {-0.7, 0.7};
 
-    // jet acceptance
-    const pair<float, float> ptJetRange  = {0.1, 100.};
-    const pair<float, float> etaJetRange = {-0.7, 0.7};
 
-    // set up configuration -----------------------------------------------------
 
-    // bundle acceptances into pairs
-    pair<ParInfo, ParInfo> cfg_parAccept;
-    cfg_parAccept.first.pt   = ptParRange.first;
-    cfg_parAccept.first.eta  = etaParRange.first;
-    cfg_parAccept.second.pt  = ptParRange.second;
-    cfg_parAccept.second.eta = etaParRange.second;
+  // bundle acceptances into pairs --------------------------------------------
+
+  pair<ParInfo, ParInfo> GetParAccept() {
+
+    pair<ParInfo, ParInfo> parAccept;
+    parAccept.first.pt   = ptParRange.first;
+    parAccept.first.eta  = etaParRange.first;
+    parAccept.second.pt  = ptParRange.second;
+    parAccept.second.eta = etaParRange.second;
+    return parAccept;
+
+  }  // end 'GetParAccept()'
+
+
+
+  pair<JetInfo, JetInfo> GetJetAccept() {
 
     pair<JetInfo, JetInfo> cfg_jetAccept;
     cfg_jetAccept.first.pt   = ptJetRange.first;
@@ -59,7 +67,14 @@ namespace LambdaJetHunterOptions {
     cfg_jetAccept.second.pt  = ptJetRange.second;
     cfg_jetAccept.second.eta = etaJetRange.second;
 
-    // create configuration and return
+  }  // end 'GetJetAccept()'
+
+
+
+  // set up configuration -----------------------------------------------------
+
+  SLambdaJetHunterConfig GetConfig(const int verbosity, const string outFile) {
+
     SLambdaJetHunterConfig cfg {
       .verbosity   = verbosity,
       .isDebugOn   = true,
@@ -73,8 +88,8 @@ namespace LambdaJetHunterOptions {
       .jetRecomb   = "pt_scheme",
       .vzAccept    = vzEvtRange,
       .vrAccept    = vrEvtRange,
-      .parAccept   = cfg_parAccept,
-      .jetAccept   = cfg_jetAccept
+      .parAccept   = GetParAccept(),
+      .jetAccept   = GetJetAccept()
     };
     return cfg;
 
