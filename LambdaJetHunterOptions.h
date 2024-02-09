@@ -61,11 +61,12 @@ namespace LambdaJetHunterOptions {
 
   pair<JetInfo, JetInfo> GetJetAccept() {
 
-    pair<JetInfo, JetInfo> cfg_jetAccept;
-    cfg_jetAccept.first.pt   = ptJetRange.first;
-    cfg_jetAccept.first.eta  = etaJetRange.first;
-    cfg_jetAccept.second.pt  = ptJetRange.second;
-    cfg_jetAccept.second.eta = etaJetRange.second;
+    pair<JetInfo, JetInfo> jetAccept;
+    jetAccept.first.pt   = ptJetRange.first;
+    jetAccept.first.eta  = etaJetRange.first;
+    jetAccept.second.pt  = ptJetRange.second;
+    jetAccept.second.eta = etaJetRange.second;
+    return jetAccept;
 
   }  // end 'GetJetAccept()'
 
