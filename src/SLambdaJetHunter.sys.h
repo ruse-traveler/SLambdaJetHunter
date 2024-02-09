@@ -130,7 +130,6 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // reset lists/associations
     m_vecSubEvts.clear();
-    m_mapCstJetAssoc.clear();
     m_mapLambdaJetAssoc.clear();
 
     // FIXME remove when i/o of utility structs is ready

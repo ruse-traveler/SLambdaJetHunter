@@ -82,13 +82,11 @@ namespace SColdQcdCorrelatorAnalysis {
 
       // fastjet output
       vector<PseudoJet> m_jets;
-      vector<CstInfo>   m_csts;
 
       // list of subevents
       vector<int> m_vecSubEvts;
 
-      // jet associations
-      map<int, int> m_mapCstJetAssoc;
+      // jet-lambda associations
       map<int, int> m_mapLambdaJetAssoc;
 
       // output event variables
@@ -138,14 +136,14 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<vector<double>> m_lambdaPhi;
 
       // analysis methods (*.ana.h)
-      void                GrabEventInfo(PHCompositeNode* topNode);
-      void                MakeJets(PHCompositeNode* topNode);
-      void                HuntLambdas(PHCompositeNode* topNode);
-      void                FillOutputTree();
-      bool                IsGoodParticle(ParInfo& particle);
-      bool                IsLambda(ParInfo& particle);
-      ParInfo             FindLambda(const int barcode);
-      HepMC::GenParticle* GetParticle(const int barcode, PHCompositeNode* topNode);
+      void    GrabEventInfo(PHCompositeNode* topNode);
+      void    MakeJets(PHCompositeNode* topNode);
+      void    HuntLambdas(PHCompositeNode* topNode);
+      void    FillOutputTree();
+      bool    IsGoodParticle(ParInfo& particle);
+      bool    IsLambda(ParInfo& particle);
+      size_t  GetTotalNumParticles(PHCompositeNode* topNode);
+      ParInfo FindLambda(const int barcode);
 
       // system methods (*.sys.h)
       void InitTree();

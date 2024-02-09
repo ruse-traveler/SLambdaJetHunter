@@ -17,6 +17,12 @@
 #include <fastjet/JetDefinition.hh>
 #include <fastjet/ClusterSequence.hh>
 #include <fastjet/FunctionOfPseudoJet.hh>
+// hepmc libraries
+#include <HepMC/GenEvent.h>
+#include <HepMC/GenParticle.h>
+// PHG4 libraries
+#include <g4main/PHG4Particle.h>
+#include <g4main/PHG4TruthInfoContainer.h>
 // analysis utilities
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/EvtTools.h"
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/JetTools.h"
@@ -117,39 +123,51 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::HuntLambdas() hunting down lambda-taggged jets" << endl;
     }
 
+    // get total no. of particles for lambda hunt
+    const size_t nTotPar = GetTotalNumParticles(topNode);
+
+    // reserve space for fastjet output
+    m_jetInfo.resize( m_jets.size() );
+    m_cstInfo.resize( m_jets.size() );
+
     // loop over fastjet output
     for (size_t iJet = 0; iJet < m_jets.size(); iJet++) {
 
       // grab jet info
-      m_jetInfo.emplace_back( m_jets[iJet] );
-      m_jetInfo.back().jetID = iJet;
+      m_jetInfo[iJet].SetInfo( m_jets[iJet] );
+      m_jetInfo[iJet].jetID = iJet;
 
       // loop over constituents
-      m_csts.clear();
+      m_cstInfo[iJet].resize( m_jets[iJet].constituents().size() );
       for (size_t iCst = 0; iCst < m_jets[iJet].constituents().size(); iCst++) {
 
         // grab cst info
-        m_csts.emplace_back( m_jets[iJet].constituents()[iCst] );
+        m_cstInfo[iJet][iCst].SetInfo( m_jets[iJet].constituents()[iCst] );
 
         // run calculations
-        const float pCst  = hypot( m_csts.back().px, m_csts.back().py, m_csts.back().pz );
-        const float pJet  = hypot( m_jetInfo.back().px, m_jetInfo.back().py, m_jetInfo.back().pz );
-        const float dfCst = m_csts.back().phi - m_jetInfo.back().phi;
-        const float dhCst = m_csts.back().eta - m_jetInfo.back().eta;
+        const float pCst  = hypot( m_cstInfo[iJet][iCst].px, m_cstInfo[iJet][iCst].py, m_cstInfo[iJet][iCst].pz );
+        const float pJet  = hypot( m_jetInfo[iJet].px, m_jetInfo[iJet].py, m_jetInfo[iJet].pz );
+        const float dfCst = m_cstInfo[iJet][iCst].phi - m_jetInfo[iJet].phi;
+        const float dhCst = m_cstInfo[iJet][iCst].eta - m_jetInfo[iJet].eta;
 
         // grab remaining cst info
-        m_csts.back().cstID = iCst;
-        m_csts.back().z     = pCst / pJet;
-        m_csts.back().dr    = hypot( dfCst, dhCst );
-
-        // set cst-jet association
-        m_mapCstJetAssoc.emplace( m_csts.back().cstID,  m_jetInfo.back().jetID );
+        m_cstInfo[iJet][iCst].jetID = m_jetInfo[iJet].jetID;
+        m_cstInfo[iJet][iCst].z     = pCst / pJet;
+        m_cstInfo[iJet][iCst].dr    = hypot( dfCst, dhCst );
 
         // grab particle based on barcode
-        HepMC::GenParticle* initiator = GetParticle(m_csts.back().cstID, topNode);
-        if (initiator) {
-          cout << "CHECK1 grabbed barcode = " << initiator -> barcode() << endl;
-        }
+        PHG4Particle* leaf = NULL;
+        GetParticleFromBarcode(m_cstInfo[iJet][iCst].cstID, topNode, leaf);
+
+        // walk back through parents until a lambda is found or no. of particles is exceeded
+        bool   foundLambda = false;
+        size_t nParChecked = 0;
+        while (!foundLambda && (nParChecked < nTotPar)) {
+
+          /* grab parents here */
+          ++nParChecked;
+
+        }  // end while (!foundLambda && (nParChecked < nTotPar))
 
         /* TODO analysis steps
          *   (2) loop through parents until a lambda is found
@@ -158,10 +176,6 @@ namespace SColdQcdCorrelatorAnalysis {
          */ 
 
       }  // end cst loop
-
-      // add constituents to output
-      m_cstInfo.push_back( m_csts );
-
     }  // end jet loop
     return;
 
@@ -231,7 +245,7 @@ namespace SColdQcdCorrelatorAnalysis {
       m_cstPhi[iJet].resize( m_cstInfo[iJet].size() );
       for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
         m_cstID[iJet][iCst]      = m_cstInfo[iJet][iCst].cstID;
-        m_cstJetID[iJet][iCst]   = m_mapCstJetAssoc[m_cstInfo[iJet][iCst].cstID] ;
+        m_cstJetID[iJet][iCst]   = m_cstInfo[iJet][iCst].jetID;
         m_cstEmbedID[iJet][iCst] = m_cstInfo[iJet][iCst].embedID;
         m_cstZ[iJet][iCst]       = m_cstInfo[iJet][iCst].z;
         m_cstDr[iJet][iCst]      = m_cstInfo[iJet][iCst].dr;
@@ -284,6 +298,24 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  size_t SLambdaJetHunter::GetTotalNumParticles(PHCompositeNode* topNode) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::GetTotalNumParticles(PHCompositeNode*) calculating total no. of paritcles" << endl;
+    }
+
+    size_t nTotPar = 0;
+    for (const int subEvt : m_vecSubEvts) {
+      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
+      nTotPar += genEvt -> particles_size();
+    }
+    return nTotPar;
+
+  }  // end 'GetTotalNumParticles(PHCompositeNode*)'
+
+
+
   ParInfo SLambdaJetHunter::FindLambda(const int barcode) {
 
     /* TODO lambda hunting goes here */
@@ -291,36 +323,6 @@ namespace SColdQcdCorrelatorAnalysis {
     return lambda;
 
   }  // end 'FindLambda(int)'
-
-
-
-  HepMC::GenParticle* SLambdaJetHunter::GetParticle(const int barcode, PHCompositeNode* topNode) {
-
-    // print debug statement
-    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::GetParticle(int, PHCompositeNode*) getting particle based on barcode" << endl;
-    }
-
-    // loop over subevents
-    HepMC::GenParticle* parToGrab = NULL;
-    for (const int subEvt : m_vecSubEvts) {
-
-      // loop over particles
-      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
-      for (
-        HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
-        hepPar != genEvt -> particles_end();
-        ++hepPar
-      ) {
-        if ((*hepPar) -> barcode() == barcode) {
-          parToGrab = *hepPar;
-          break;
-        }
-      }  // end particle loop
-    }  // end subevent loop
-    return parToGrab;
-
-  }  // end 'GetParticle(int, PHCompositeNode*)'
 
 }  // end SColdQcdCorrelatorAnalysis namespace
 
