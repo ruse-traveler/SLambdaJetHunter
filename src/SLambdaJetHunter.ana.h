@@ -10,8 +10,13 @@
 #ifndef SLAMBDAJETHUNTER_ANA_H
 #define SLAMBDAJETHUNTER_ANA_H
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 // c++ utilities
+#include <map>
 #include <cmath>
+#include <limits>
 // fastjet libraries
 #include <fastjet/PseudoJet.hh>
 #include <fastjet/JetDefinition.hh>
@@ -19,15 +24,15 @@
 #include <fastjet/FunctionOfPseudoJet.hh>
 // hepmc libraries
 #include <HepMC/GenEvent.h>
+#include <HepMC/GenVertex.h>
 #include <HepMC/GenParticle.h>
-// PHG4 libraries
-#include <g4main/PHG4Particle.h>
-#include <g4main/PHG4TruthInfoContainer.h>
 // analysis utilities
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/EvtTools.h"
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/JetTools.h"
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/CstTools.h"
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/GenTools.h"
+
+#pragma GCC diagnostic pop
 
 // make common namespaces implicit
 using namespace std;
@@ -123,9 +128,6 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::HuntLambdas() hunting down lambda-taggged jets" << endl;
     }
 
-    // get total no. of particles for lambda hunt
-    const size_t nTotPar = GetTotalNumParticles(topNode);
-
     // reserve space for fastjet output
     m_jetInfo.resize( m_jets.size() );
     m_cstInfo.resize( m_jets.size() );
@@ -155,19 +157,49 @@ namespace SColdQcdCorrelatorAnalysis {
         m_cstInfo[iJet][iCst].z     = pCst / pJet;
         m_cstInfo[iJet][iCst].dr    = hypot( dfCst, dhCst );
 
-        // grab particle based on barcode
-        PHG4Particle* leaf = NULL;
-        GetParticleFromBarcode(m_cstInfo[iJet][iCst].cstID, topNode, leaf);
+        // hunt down lambdas --------------------------------------------------
 
-        // walk back through parents until a lambda is found or no. of particles is exceeded
-        bool   foundLambda = false;
-        size_t nParChecked = 0;
-        while (!foundLambda && (nParChecked < nTotPar)) {
+        // loop over subevents
+        for (const int subEvt : m_vecSubEvts) {
 
-          /* grab parents here */
-          ++nParChecked;
+          // loop over particles
+          HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
+          for (
+            HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
+            hepPar != genEvt -> particles_end();
+            ++hepPar
+          ) {
 
-        }  // end while (!foundLambda && (nParChecked < nTotPar))
+            // if not a new lambda, continue
+            const bool isLambda = IsLambda( (*hepPar) -> pdg_id() );
+            const bool isNew    = IsNewLambda( (*hepPar) -> barcode() );
+            if (!isLambda || !isNew) continue;
+
+            // TODO remove when ready
+            cout << "\n---------------------------------\n" 
+                 << "LAMBDA! Beginning decay chain hunt..."
+                 << endl;
+
+            // grab end HepMC end vertex
+            HepMC::GenVertex* hepEndVtx = (*hepPar) -> end_vertex();
+
+            // check if constituent is in decay chain,
+            bool isInDecayChain = false;
+            if (hepEndVtx) {
+              isInDecayChain = IsInHepMCDecayChain(m_cstInfo[iJet][iCst].cstID, hepEndVtx);
+            } else {
+              isInDecayChain = IsInPHG4DecayChain(m_cstInfo[iJet][iCst].cstID);
+            }
+
+            // if so, add lambda to lists
+            if (isInDecayChain) {
+              // TODO remove when ready
+              cout << "This lambda is in the constituent's decay chain" 
+                   << "\n---------------------------------\n" 
+                   << endl;
+            }
+          }  // end particle loop
+        }  // end subevent loop
 
         /* TODO analysis steps
          *   (2) loop through parents until a lambda is found
@@ -284,45 +316,111 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  bool SLambdaJetHunter::IsLambda(ParInfo& particle) {
+  bool SLambdaJetHunter::IsLambda(const int pid) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::IsLambda(ParInfo&) checking if particle is a lambda" << endl;
+      cout << "SLambdaJetHunter::IsLambda(int) checking if particle is a lambda" << endl;
     }
 
-    const bool isLambda = (particle.pid == m_const.pidLambda);
-    return isLambda;
+    return (pid == m_const.pidLambda);
 
-  }  // end 'IsLambda(ParInfo&)'
-
+  }  // end 'IsLambda(int)'
 
 
-  size_t SLambdaJetHunter::GetTotalNumParticles(PHCompositeNode* topNode) {
+
+  bool SLambdaJetHunter::IsNewLambda(const int id) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::GetTotalNumParticles(PHCompositeNode*) calculating total no. of paritcles" << endl;
+      cout << "SLambdaJetHunter::IsNewLambda(int) checking if lambda is already found" << endl;
     }
 
-    size_t nTotPar = 0;
-    for (const int subEvt : m_vecSubEvts) {
-      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
-      nTotPar += genEvt -> particles_size();
+    return (m_mapLambdaJetAssoc.count(id) == 0);
+
+  }  // end 'IsNewLambda(int)'
+
+
+
+  bool SLambdaJetHunter::IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxStart) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::IsInHepMCDecayChain(int, HepMC::GenVertex*) checking if particle is in HepMC decay chain" << endl;
     }
-    return nTotPar;
 
-  }  // end 'GetTotalNumParticles(PHCompositeNode*)'
+    // make sure vectors are clear and add initial vertex
+    m_vecVtxChecking.clear();
+    m_vecVtxToCheck.clear();
+    m_vecVtxToCheck.push_back(vtxStart);
+
+    // breadth-first search of all connected vertices for particle w/ barcode 'idToFind'
+    int  nVtxChecked     = 0;
+    bool isParticleFound = false;
+    while (!isParticleFound || (nVtxChecked >= m_const.maxVtxToCheck)) {
+
+      // transfer vertices to-check to being-checked list
+      m_vecVtxChecking.clear();
+      for (auto vertex : m_vecVtxToCheck) {
+        m_vecVtxChecking.push_back(vertex);
+      }
+      m_vecVtxToCheck.clear();
+
+      // iterate over vertices being checked
+      for (auto vertex : m_vecVtxChecking) {
+
+        // iterate over particles in vertex
+        HepMC::GenVertex::particles_out_const_iterator outPar;
+        for (
+          outPar = vertex -> particles_out_const_begin();
+          outPar != vertex -> particles_out_const_end();
+          ++outPar
+        ) {
+          if ((*outPar) -> barcode() == idToFind) {
+            isParticleFound = true;
+            break;
+          } else {
+            m_vecVtxToCheck.push_back((*outPar) -> end_vertex());
+          }
+        }  // end particle loop
+
+        // if found particler, exit
+        //   - otherwise increment no. of vertices checked
+        if (isParticleFound) {
+          break;
+        } else {
+          ++nVtxChecked;
+        }
+      }  // end vertex loop
+    }  // end while (!isParticleFound)
+    return isParticleFound;
+
+  }  // end 'IsInHepMCDecayChain(int, HepMC::GenVertex*)'
 
 
 
-  ParInfo SLambdaJetHunter::FindLambda(const int barcode) {
+  bool SLambdaJetHunter::IsInPHG4DecayChain(const int idToFind) {
 
-    /* TODO lambda hunting goes here */
-    ParInfo lambda;
-    return lambda;
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::IsInPHG4DecayChain(int) checking if particle is in Geant decay chain" << endl;
+    }
 
-  }  // end 'FindLambda(int)'
+    // make sure vectors are clear and add initial vertex
+    m_vecVtxChecking.clear();
+    m_vecVtxToCheck.clear();
+
+    int  nVtxChecked     = 0;
+    bool isParticleFound = false;
+    while (!isParticleFound || (nVtxChecked >= m_const.maxVtxToCheck)) {
+
+      /* TODO fill in method here */
+      ++nVtxChecked;
+
+    }  // end while (!isParticleFound)
+    return isParticleFound;
+
+  }  // end 'IsInPHG4DecayChain(int)'
 
 }  // end SColdQcdCorrelatorAnalysis namespace
 
