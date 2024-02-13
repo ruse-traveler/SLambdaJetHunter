@@ -82,9 +82,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
       // output variables
       GenInfo                 m_genEvtInfo;
+      vector<ParInfo>         m_lambdaInfo;
       vector<JetInfo>         m_jetInfo;
       vector<vector<CstInfo>> m_cstInfo;
-      vector<vector<ParInfo>> m_lambdaInfo;
 
       // vectors for internal calculations
       vector<int>               m_vecSubEvts;
@@ -112,6 +112,16 @@ namespace SColdQcdCorrelatorAnalysis {
       pair<double, double> m_evtPartPy;
       pair<double, double> m_evtPartPz;
       pair<double, double> m_evtPartE;
+      // output lambda variables
+      vector<int>    m_lambdaID;
+      vector<int>    m_lambdaJetID;
+      vector<int>    m_lambdaEmbedID;
+      vector<double> m_lambdaZ;
+      vector<double> m_lambdaDr;
+      vector<double> m_lambdaE;
+      vector<double> m_lambdaPt;
+      vector<double> m_lambdaEta;
+      vector<double> m_lambdaPhi;
       // output jet variables
       vector<bool>     m_jetHasLambda;
       vector<uint64_t> m_jetNCst;
@@ -130,27 +140,18 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<vector<double>> m_cstPt;
       vector<vector<double>> m_cstEta;
       vector<vector<double>> m_cstPhi;
-      // output lambda variables
-      vector<vector<int>>    m_lambdaID;
-      vector<vector<int>>    m_lambdaJetID;
-      vector<vector<int>>    m_lambdaEmbedID;
-      vector<vector<double>> m_lambdaZ;
-      vector<vector<double>> m_lambdaDr;
-      vector<vector<double>> m_lambdaE;
-      vector<vector<double>> m_lambdaPt;
-      vector<vector<double>> m_lambdaEta;
-      vector<vector<double>> m_lambdaPhi;
 
       // analysis methods (*.ana.h)
       void GrabEventInfo(PHCompositeNode* topNode);
       void MakeJets(PHCompositeNode* topNode);
-      void HuntLambdas(PHCompositeNode* topNode);
+      void CollectOutput(PHCompositeNode* topNode);
+      void AssociateLambdasToJets(PHCompositeNode* topNode);
       void FillOutputTree();
       bool IsGoodParticle(ParInfo& particle);
       bool IsLambda(const int pid);
       bool IsNewLambda(const int id);
       bool IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxToStart);
-      bool IsInPHG4DecayChain(const int idToFind);
+      bool IsInPHG4DecayChain(const int idToFind, PHCompositeNode* topNode);
 
       // system methods (*.sys.h)
       void InitTree();

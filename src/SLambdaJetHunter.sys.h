@@ -50,6 +50,15 @@ namespace SColdQcdCorrelatorAnalysis {
     m_outTree -> Branch("PartonB_Py",    &m_evtPartPy.second, "PartonB_Py/D");
     m_outTree -> Branch("PartonB_Pz",    &m_evtPartPz.second, "PartonB_Pz/D");
     m_outTree -> Branch("PartonB_E",     &m_evtPartE.second,  "PartonB_E/D");
+    m_outTree -> Branch("LambdaID",      &m_lambdaID);
+    m_outTree -> Branch("LambdaJetID",   &m_lambdaJetID);
+    m_outTree -> Branch("LambdaEmbedID", &m_lambdaEmbedID);
+    m_outTree -> Branch("LambdaZ",       &m_lambdaZ);
+    m_outTree -> Branch("LambdaDr",      &m_lambdaDr);
+    m_outTree -> Branch("LambdaEnergy",  &m_lambdaE);
+    m_outTree -> Branch("LambdaPt",      &m_lambdaPt);
+    m_outTree -> Branch("LambdaEta",     &m_lambdaEta);
+    m_outTree -> Branch("LambdaPhi",     &m_lambdaPhi);
     m_outTree -> Branch("JetHasLambda",  &m_jetHasLambda);
     m_outTree -> Branch("JetNCst",       &m_jetNCst);
     m_outTree -> Branch("JetID",         &m_jetID);
@@ -66,15 +75,6 @@ namespace SColdQcdCorrelatorAnalysis {
     m_outTree -> Branch("CstPt",         &m_cstPt);
     m_outTree -> Branch("CstEta",        &m_cstEta);
     m_outTree -> Branch("CstPhi",        &m_cstPhi);
-    m_outTree -> Branch("LambdaID",      &m_lambdaID);
-    m_outTree -> Branch("LambdaJetID",   &m_lambdaJetID);
-    m_outTree -> Branch("LambdaEmbedID", &m_lambdaEmbedID);
-    m_outTree -> Branch("LambdaZ",       &m_lambdaZ);
-    m_outTree -> Branch("LambdaDr",      &m_lambdaDr);
-    m_outTree -> Branch("LambdaEnergy",  &m_lambdaE);
-    m_outTree -> Branch("LambdaPt",      &m_lambdaPt);
-    m_outTree -> Branch("LambdaEta",     &m_lambdaEta);
-    m_outTree -> Branch("LambdaPhi",     &m_lambdaPhi);
     return;
 
   }  // end 'InitTree()'
@@ -130,6 +130,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // reset lists/associations
     m_vecSubEvts.clear();
+    m_jets.clear();
+    m_vecVtxToCheck.clear();
+    m_vecVtxChecking.clear();
     m_mapLambdaJetAssoc.clear();
 
     // FIXME remove when i/o of utility structs is ready
@@ -147,6 +150,15 @@ namespace SColdQcdCorrelatorAnalysis {
     m_evtPartPy = {-999., -999.};
     m_evtPartPz = {-999., -999.};
     m_evtPartE = {-999., -999.};
+    m_lambdaID.clear();
+    m_lambdaJetID.clear();
+    m_lambdaEmbedID.clear();
+    m_lambdaZ.clear();
+    m_lambdaDr.clear();
+    m_lambdaE.clear();
+    m_lambdaPt.clear();
+    m_lambdaEta.clear();
+    m_lambdaPhi.clear();
     m_jetHasLambda.clear();
     m_jetNCst.clear();
     m_jetID.clear();
@@ -163,15 +175,6 @@ namespace SColdQcdCorrelatorAnalysis {
     m_cstPt.clear();
     m_cstEta.clear();
     m_cstPhi.clear();
-    m_lambdaID.clear();
-    m_lambdaJetID.clear();
-    m_lambdaEmbedID.clear();
-    m_lambdaZ.clear();
-    m_lambdaDr.clear();
-    m_lambdaE.clear();
-    m_lambdaPt.clear();
-    m_lambdaEta.clear();
-    m_lambdaPhi.clear();
     return;
 
   }  // end 'ResetOutput()'

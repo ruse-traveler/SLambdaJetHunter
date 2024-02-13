@@ -26,6 +26,10 @@
 #include <HepMC/GenEvent.h>
 #include <HepMC/GenVertex.h>
 #include <HepMC/GenParticle.h>
+// PHG4 libraries
+#include <g4main/PHG4Particle.h>
+#include <g4main/PHG4Particlev3.h>
+#include <g4main/PHG4TruthInfoContainer.h>
 // analysis utilities
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/EvtTools.h"
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/JetTools.h"
@@ -121,11 +125,11 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  void SLambdaJetHunter::HuntLambdas(PHCompositeNode* topNode) {
+  void SLambdaJetHunter::CollectOutput(PHCompositeNode* topNode) {
 
     // print debug statement
     if (m_config.isDebugOn) {
-      cout << "SLambdaJetHunter::HuntLambdas() hunting down lambda-taggged jets" << endl;
+      cout << "SLambdaJetHunter::CollectOutput() hunting down lambda-taggged jets" << endl;
     }
 
     // reserve space for fastjet output
@@ -157,62 +161,106 @@ namespace SColdQcdCorrelatorAnalysis {
         m_cstInfo[iJet][iCst].z     = pCst / pJet;
         m_cstInfo[iJet][iCst].dr    = hypot( dfCst, dhCst );
 
-        // hunt down lambdas --------------------------------------------------
-
-        // loop over subevents
-        for (const int subEvt : m_vecSubEvts) {
-
-          // loop over particles
-          HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
-          for (
-            HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
-            hepPar != genEvt -> particles_end();
-            ++hepPar
-          ) {
-
-            // if not a new lambda, continue
-            const bool isLambda = IsLambda( (*hepPar) -> pdg_id() );
-            const bool isNew    = IsNewLambda( (*hepPar) -> barcode() );
-            if (!isLambda || !isNew) continue;
-
-            // TODO remove when ready
-            cout << "\n---------------------------------\n" 
-                 << "LAMBDA! Beginning decay chain hunt..."
-                 << endl;
-
-            // grab end HepMC end vertex
-            HepMC::GenVertex* hepEndVtx = (*hepPar) -> end_vertex();
-
-            // check if constituent is in decay chain,
-            bool isInDecayChain = false;
-            if (hepEndVtx) {
-              isInDecayChain = IsInHepMCDecayChain(m_cstInfo[iJet][iCst].cstID, hepEndVtx);
-            } else {
-              isInDecayChain = IsInPHG4DecayChain(m_cstInfo[iJet][iCst].cstID);
-            }
-
-            // if so, add lambda to lists
-            if (isInDecayChain) {
-              // TODO remove when ready
-              cout << "This lambda is in the constituent's decay chain" 
-                   << "\n---------------------------------\n" 
-                   << endl;
-            }
-          }  // end particle loop
-        }  // end subevent loop
-
-        /* TODO analysis steps
-         *   (2) loop through parents until a lambda is found
-         *   (3) if lambda hasn't already been added, shove into list
-         *   (4) continue on
-         */ 
-
       }  // end cst loop
     }  // end jet loop
+
+    // grab lambda info
+    for (const int subEvt : m_vecSubEvts) {
+
+      // loop over particles
+      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
+      for (
+        HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
+        hepPar != genEvt -> particles_end();
+        ++hepPar
+      ) {
+
+        // check if lambda and if has been found yet
+        const bool isLambda = IsLambda( (*hepPar) -> pdg_id() );
+        const bool isNew    = IsNewLambda( (*hepPar) -> barcode() );
+        if (!isLambda || !isNew) continue;
+
+        // if a new lambda, add to output vector and lambda-jet map
+        m_lambdaInfo.emplace_back( (*hepPar), subEvt );
+        m_mapLambdaJetAssoc.insert(
+          make_pair( (*hepPar) -> barcode(), -1 )
+        );
+
+      }  // end particle loop
+    }  // end subevent loop
     return;
 
-  }  // end 'HuntLambdas(PHCompositeNode*)'
+  }  // end 'CollectOutput(PHCompositeNode*)'
 
+
+
+  void SLambdaJetHunter::AssociateLambdasToJets(PHCompositeNode* topNode) {
+
+    // print debug statement
+    if (m_config.isDebugOn) {
+      cout << "SLambdaJetHunter::AssociateLambdasToJets() associating found lambdas to jets" << endl;
+    }
+ 
+    // loop over lambdas
+    for (size_t iLambda = 0; iLambda < m_lambdaInfo.size(); iLambda++) { 
+
+      // TODO remove when ready
+      cout << "\n---------------------------------\n" 
+           << " Beginning decay chain hunt..."
+           << endl;
+
+      // check if end vertex of GenParticle is saved
+      HepMC::GenParticle* hepLambda = GetHepMCGenParticleFromBarcode(m_lambdaInfo[iLambda].barcode, topNode);
+      HepMC::GenVertex*   hepEndVtx = hepLambda -> end_vertex();
+      cout << "  (0) grabbed HepMC things:\n"
+           << "        hepLambda = " << hepLambda << "\n"
+           << "        hepEndVtx = " << hepEndVtx
+           << endl;
+
+      // loop over constituents and check which cst.s the lambda decayed into
+      bool   foundAssocJet = false;
+      size_t iAssocJet     = -1;
+      for (size_t iJet = 0; iJet < m_cstInfo.size(); iJet++) {
+        for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
+
+          // check if constituent is in decay chain,
+          bool isInDecayChain = false;
+          if (hepEndVtx) {
+            isInDecayChain = IsInHepMCDecayChain(m_cstInfo[iJet][iCst].cstID, hepEndVtx);
+          } else {
+            isInDecayChain = IsInPHG4DecayChain(m_cstInfo[iJet][iCst].cstID, topNode);
+          }
+
+          // if so, add lambda to lists
+          if (isInDecayChain) {
+            foundAssocJet = true;
+            iAssocJet     = iJet;
+            cout << " Lambda [" << iLambda << "] is in constituent [" << iCst << "]'s decay chain" 
+                 << "\n---------------------------------\n" 
+                 << endl;
+            break;
+          }
+        } // end cst loop
+
+        // if found association, exit
+        if (foundAssocJet) {
+          break;
+        }
+      }  // end jet loop
+
+      // save association in map
+      m_mapLambdaJetAssoc[m_lambdaInfo[iLambda].barcode] = iAssocJet;
+
+    }  // end lambda loop
+
+     /* TODO analysis steps
+      *   (2) loop through parents until a lambda is found
+      *   (3) if lambda hasn't already been added, shove into list
+      *   (4) continue on
+      */ 
+    return;
+
+  }  // end 'AssociateLambdasToJets(PHCompositeNode*)'
 
 
   void SLambdaJetHunter::FillOutputTree() {
@@ -225,7 +273,7 @@ namespace SColdQcdCorrelatorAnalysis {
     // collect event info
     //   - FIXME remove when i/o of utility structs is ready
     m_evtNJets       = m_jetInfo.size();
-    m_evtNLambdas    = 0;  // TODO fill in when ready
+    m_evtNLambdas    = m_mapLambdaJetAssoc.size();
     m_evtNTaggedJets = 0;  // TODO fill in when ready
     m_evtNChrgPars   = m_genEvtInfo.nChrgPar;
     m_evtNNeuPars    = m_genEvtInfo.nNeuPar;
@@ -242,10 +290,24 @@ namespace SColdQcdCorrelatorAnalysis {
     m_evtPartPz = make_pair( m_genEvtInfo.partons.first.pz,  m_genEvtInfo.partons.second.pz  );
     m_evtPartE  = make_pair( m_genEvtInfo.partons.first.ene, m_genEvtInfo.partons.second.ene );
 
+    // collect lambda information
+    //   - FIXME remove when i/o of utility structs is ready
+    for (ParInfo& lambda : m_lambdaInfo) {
+      m_lambdaID.push_back( lambda.barcode );
+      m_lambdaJetID.push_back( m_mapLambdaJetAssoc[lambda.barcode] );
+      m_lambdaEmbedID.push_back( lambda.embedID );
+      m_lambdaZ.push_back( -1. );  // TODO fill in when ready
+      m_lambdaDr.push_back( -1. );  // TODO fill in when ready
+      m_lambdaE.push_back( lambda.ene );
+      m_lambdaPt.push_back( lambda.pt );
+      m_lambdaEta.push_back( lambda.eta );
+      m_lambdaPhi.push_back( lambda.phi );
+    }
+
     // collect jet information
     //   - FIXME remove when i/o of utility structs is ready
     for (JetInfo& jet : m_jetInfo) {
-      m_jetHasLambda.push_back( false );
+      m_jetHasLambda.push_back( false );  // TODO fill in when ready
       m_jetNCst.push_back( jet.nCsts );
       m_jetID.push_back( jet.jetID );
       m_jetE.push_back( jet.ene );
@@ -399,7 +461,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  bool SLambdaJetHunter::IsInPHG4DecayChain(const int idToFind) {
+  bool SLambdaJetHunter::IsInPHG4DecayChain(const int idToFind, PHCompositeNode* topNode) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
@@ -414,13 +476,24 @@ namespace SColdQcdCorrelatorAnalysis {
     bool isParticleFound = false;
     while (!isParticleFound || (nVtxChecked >= m_const.maxVtxToCheck)) {
 
-      /* TODO fill in method here */
+      PHG4TruthInfoContainer*            container = GetTruthContainer(topNode);
+      PHG4TruthInfoContainer::ConstRange particles = container -> GetParticleRange();
+      for (
+        PHG4TruthInfoContainer::ConstIterator itPar = particles.first;
+        itPar != particles.second;
+        ++itPar
+      ) {
+
+        /* checking parent ID goes here */
+
+      }  // end particle loop 
+
       ++nVtxChecked;
 
     }  // end while (!isParticleFound)
     return isParticleFound;
 
-  }  // end 'IsInPHG4DecayChain(int)'
+  }  // end 'IsInPHG4DecayChain(int, PHCompositeNode*)'
 
 }  // end SColdQcdCorrelatorAnalysis namespace
 
