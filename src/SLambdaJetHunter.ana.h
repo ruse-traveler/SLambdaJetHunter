@@ -17,6 +17,8 @@
 #include <map>
 #include <cmath>
 #include <limits>
+// root libraries
+#include <TMath.h>
 // fastjet libraries
 #include <fastjet/PseudoJet.hh>
 #include <fastjet/JetDefinition.hh>
@@ -28,7 +30,7 @@
 #include <HepMC/GenParticle.h>
 // PHG4 libraries
 #include <g4main/PHG4Particle.h>
-#include <g4main/PHG4Particlev3.h>
+#include <g4main/PHG4Particlev2.h>
 #include <g4main/PHG4TruthInfoContainer.h>
 // analysis utilities
 #include "/sphenix/user/danderson/install/include/scorrelatorutilities/EvtTools.h"
@@ -54,7 +56,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // print debug statement
     if (m_config.isDebugOn) {
-      cout << "SLambdaJetHunter::GrabEventInfo() Grabbing event info" << endl;
+      cout << "SLambdaJetHunter::GrabEventInfo(PHCompositeNode*) Grabbing event info" << endl;
     }
 
     // FIXME turn on subevents after figuring out why
@@ -66,6 +68,50 @@ namespace SColdQcdCorrelatorAnalysis {
     return;
 
   }  // end 'GrabEventInfo(PHCompositeNode*)'
+
+
+
+  void SLambdaJetHunter::FindLambdas(PHCompositeNode* topNode) {
+
+    // print debug statement
+    if (m_config.isDebugOn) {
+      cout << "SLambdaJetHunter::FindLambdas(PHCompositeNode*) Finding all lambdas in event" << endl;
+    }
+
+    // loop over subevents
+    for (const int subEvt : m_vecSubEvts) {
+
+      // loop over particles
+      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
+      for (
+        HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
+        hepPar != genEvt -> particles_end();
+        ++hepPar
+      ) {
+
+        // check if lambda and if found yet
+        const bool isLambda = IsLambda( (*hepPar) -> pdg_id() );
+        const bool isNew    = IsNewLambda( (*hepPar) -> barcode() );
+        if (!isLambda || !isNew) continue;
+
+        // grab info
+        ParInfo lambda( (*hepPar), subEvt );
+
+        // check if good
+        const bool isGood = IsGoodLambda(lambda);
+        if (!isGood) continue;
+
+        // if a new good lambda, add to output vector and lambda-jet map
+        m_lambdaInfo.push_back(lambda);
+        m_mapLambdaJetAssoc.insert(
+          make_pair( (*hepPar) -> barcode(), -1 )
+        );
+
+      }  // end particle loop
+    }  // end subevent loop
+    return;
+
+  }  // end 'FindLambdas(PHCompositeNode*)'
 
 
 
@@ -125,7 +171,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  void SLambdaJetHunter::CollectOutput(PHCompositeNode* topNode) {
+  void SLambdaJetHunter::CollectJetOutput(PHCompositeNode* topNode) {
 
     // print debug statement
     if (m_config.isDebugOn) {
@@ -163,34 +209,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
       }  // end cst loop
     }  // end jet loop
-
-    // grab lambda info
-    for (const int subEvt : m_vecSubEvts) {
-
-      // loop over particles
-      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
-      for (
-        HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
-        hepPar != genEvt -> particles_end();
-        ++hepPar
-      ) {
-
-        // check if lambda and if has been found yet
-        const bool isLambda = IsLambda( (*hepPar) -> pdg_id() );
-        const bool isNew    = IsNewLambda( (*hepPar) -> barcode() );
-        if (!isLambda || !isNew) continue;
-
-        // if a new lambda, add to output vector and lambda-jet map
-        m_lambdaInfo.emplace_back( (*hepPar), subEvt );
-        m_mapLambdaJetAssoc.insert(
-          make_pair( (*hepPar) -> barcode(), -1 )
-        );
-
-      }  // end particle loop
-    }  // end subevent loop
     return;
 
-  }  // end 'CollectOutput(PHCompositeNode*)'
+  }  // end 'CollectJetOutput(PHCompositeNode*)'
 
 
 
@@ -200,67 +221,29 @@ namespace SColdQcdCorrelatorAnalysis {
     if (m_config.isDebugOn) {
       cout << "SLambdaJetHunter::AssociateLambdasToJets() associating found lambdas to jets" << endl;
     }
- 
+
     // loop over lambdas
-    for (size_t iLambda = 0; iLambda < m_lambdaInfo.size(); iLambda++) { 
+    for (ParInfo& lambda : m_lambdaInfo) {
 
-      // TODO remove when ready
-      cout << "\n---------------------------------\n" 
-           << " Beginning decay chain hunt..."
-           << endl;
+      // if needed, first try associating by decay chain
+      int iAssocJet = -1;
+      if (!m_config.useOnlyDistHunt) {
+        iAssocJet = HuntLambdasByDecayChain(lambda, topNode);
+      }
 
-      // check if end vertex of GenParticle is saved
-      HepMC::GenParticle* hepLambda = GetHepMCGenParticleFromBarcode(m_lambdaInfo[iLambda].barcode, topNode);
-      HepMC::GenVertex*   hepEndVtx = hepLambda -> end_vertex();
-      cout << "  (0) grabbed HepMC things:\n"
-           << "        hepLambda = " << hepLambda << "\n"
-           << "        hepEndVtx = " << hepEndVtx
-           << endl;
+      // otherwise, associate by distance
+      if (iAssocJet == -1) {
+        iAssocJet = HuntLambdasByDistance(lambda);
+      }
 
-      // loop over constituents and check which cst.s the lambda decayed into
-      bool   foundAssocJet = false;
-      size_t iAssocJet     = -1;
-      for (size_t iJet = 0; iJet < m_cstInfo.size(); iJet++) {
-        for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
-
-          // check if constituent is in decay chain,
-          bool isInDecayChain = false;
-          if (hepEndVtx) {
-            isInDecayChain = IsInHepMCDecayChain(m_cstInfo[iJet][iCst].cstID, hepEndVtx);
-          } else {
-            isInDecayChain = IsInPHG4DecayChain(m_cstInfo[iJet][iCst].cstID, topNode);
-          }
-
-          // if so, add lambda to lists
-          if (isInDecayChain) {
-            foundAssocJet = true;
-            iAssocJet     = iJet;
-            cout << " Lambda [" << iLambda << "] is in constituent [" << iCst << "]'s decay chain" 
-                 << "\n---------------------------------\n" 
-                 << endl;
-            break;
-          }
-        } // end cst loop
-
-        // if found association, exit
-        if (foundAssocJet) {
-          break;
-        }
-      }  // end jet loop
-
-      // save association in map
-      m_mapLambdaJetAssoc[m_lambdaInfo[iLambda].barcode] = iAssocJet;
+      // assign associated jet
+      m_mapLambdaJetAssoc[lambda.barcode] = iAssocJet;
 
     }  // end lambda loop
-
-     /* TODO analysis steps
-      *   (2) loop through parents until a lambda is found
-      *   (3) if lambda hasn't already been added, shove into list
-      *   (4) continue on
-      */ 
     return;
 
-  }  // end 'AssociateLambdasToJets(PHCompositeNode*)'
+  }   // end 'AssociateLambdasToJets(PHCompositeNode*)'
+
 
 
   void SLambdaJetHunter::FillOutputTree() {
@@ -274,7 +257,6 @@ namespace SColdQcdCorrelatorAnalysis {
     //   - FIXME remove when i/o of utility structs is ready
     m_evtNJets       = m_jetInfo.size();
     m_evtNLambdas    = m_mapLambdaJetAssoc.size();
-    m_evtNTaggedJets = 0;  // TODO fill in when ready
     m_evtNChrgPars   = m_genEvtInfo.nChrgPar;
     m_evtNNeuPars    = m_genEvtInfo.nNeuPar;
     m_evtSumEPar     = m_genEvtInfo.eSumChrg + m_genEvtInfo.eSumNeu;
@@ -293,15 +275,24 @@ namespace SColdQcdCorrelatorAnalysis {
     // collect lambda information
     //   - FIXME remove when i/o of utility structs is ready
     for (ParInfo& lambda : m_lambdaInfo) {
+
+      // collect general information
       m_lambdaID.push_back( lambda.barcode );
-      m_lambdaJetID.push_back( m_mapLambdaJetAssoc[lambda.barcode] );
       m_lambdaEmbedID.push_back( lambda.embedID );
-      m_lambdaZ.push_back( -1. );  // TODO fill in when ready
-      m_lambdaDr.push_back( -1. );  // TODO fill in when ready
       m_lambdaE.push_back( lambda.ene );
       m_lambdaPt.push_back( lambda.pt );
       m_lambdaEta.push_back( lambda.eta );
       m_lambdaPhi.push_back( lambda.phi );
+
+      // collect associate jet information
+      m_lambdaJetID.push_back( m_mapLambdaJetAssoc[lambda.barcode] );
+      if (m_mapLambdaJetAssoc[lambda.barcode] == -1) {
+        m_lambdaZ.push_back( GetLambdaAssocZ(lambda) );
+        m_lambdaDr.push_back( GetLambdaAssocDr(lambda) );
+      } else {
+        m_lambdaZ.push_back( -1. );
+        m_lambdaDr.push_back( -1. );
+      }
     }
 
     // collect jet information
@@ -353,54 +344,85 @@ namespace SColdQcdCorrelatorAnalysis {
     m_outTree -> Fill();
     return;
 
-  }  // end 'GrabOutputInfo()'
+  }  // end 'FillOutputTree()'
+ 
 
 
-
-  bool SLambdaJetHunter::IsGoodParticle(ParInfo& particle) {
-
-    // print debug statement
-    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::IsGoodParticle(ParInfo&) checking if particle is good" << endl;
-    }
-
-    // check charge if needed
-    bool isGoodCharge = true;
-    if (m_config.isCharged) {
-      isGoodCharge = (particle.charge != 0.);
-    }
-
-    // run other checks and return
-    const bool isInAccept = IsInAcceptance(particle, m_config.parAccept.first, m_config.parAccept.second);
-    return (isGoodCharge && isInAccept);
-
-  }  // end 'IsGoodParticle(ParInfo&)'
-
-
-
-  bool SLambdaJetHunter::IsLambda(const int pid) {
+  int SLambdaJetHunter::HuntLambdasByDecayChain(ParInfo& lambda, PHCompositeNode* topNode) {
 
     // print debug statement
-    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::IsLambda(int) checking if particle is a lambda" << endl;
+    if (m_config.isDebugOn) {
+      cout << "SLambdaJetHunter::HuntLambdasByDecayChain(ParInfo&, PHCompositeNode*) hunting for lambdas by inspecting decay chains" << endl;
     }
 
-    return (pid == m_const.pidLambda);
+    // grab PHG4 and HepMC information
+    HepMC::GenParticle* hepLambda = GetHepMCGenParticleFromBarcode(lambda.barcode, topNode);
+    HepMC::GenVertex*   hepEndVtx = hepLambda -> end_vertex();
 
-  }  // end 'IsLambda(int)'
+    // loop over constituents and check which cst.s the lambda decayed into
+    int  iAssocJet     = -1;
+    bool foundAssocJet = false;
+    for (size_t iJet = 0; iJet < m_cstInfo.size(); iJet++) {
+      for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
+
+        // check if constituent is in decay chain,
+        bool isInDecayChain = false;
+        if (hepEndVtx) {
+          isInDecayChain = IsInHepMCDecayChain(m_cstInfo[iJet][iCst].cstID, hepEndVtx);
+        } else {
+          isInDecayChain = IsInPHG4DecayChain(m_cstInfo[iJet][iCst].cstID, lambda.barcode, topNode);
+        }
+
+        // if so, add lambda to lists
+        if (isInDecayChain) {
+          foundAssocJet = true;
+          iAssocJet     = iJet;
+          break;
+        }
+      } // end cst loop
+
+      // if found association, exit loop
+      if (foundAssocJet)  break;
+
+    }  // end jet loop
+    return iAssocJet;
+
+  }  // end 'HuntLambdasByDecayChain(PHCompositeNode*)'
 
 
 
-  bool SLambdaJetHunter::IsNewLambda(const int id) {
+  int SLambdaJetHunter::HuntLambdasByDistance(ParInfo& lambda) {
 
     // print debug statement
-    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::IsNewLambda(int) checking if lambda is already found" << endl;
+    if (m_config.isDebugOn) {
+      cout << "SLambdaJetHunter::HuntLambdasByDistance(ParInfo&) hunting for lambds by distance" << endl;
     }
 
-    return (m_mapLambdaJetAssoc.count(id) == 0);
+    // loop over jets
+    int    iAssocJet   = -1;
+    double drAssocBest = numeric_limits<double>::max();
+    for (size_t iJet = 0; iJet < m_jetInfo.size(); iJet++) {
 
-  }  // end 'IsNewLambda(int)'
+      // calculate delta-phi
+      double dfAssoc = lambda.phi - m_jetInfo[iJet].phi;
+      if (dfAssoc < 0.)             dfAssoc += TMath::TwoPi();
+      if (dfAssoc > TMath::TwoPi()) dfAssoc -= TMath::TwoPi();
+
+      // calculate dr
+      const double dhAssoc = lambda.eta - m_jetInfo[iJet].eta;
+      const double drAssoc = hypot(dfAssoc, dhAssoc);
+
+      // check if lambda is within rJet
+      const bool isDistGood = (drAssoc < m_config.rJet);
+      const bool isDistBest = (drAssoc < drAssocBest);
+      if (isDistGood && isDistBest) {
+        drAssocBest = drAssoc;
+        iAssocJet   = iJet;
+      }
+    }
+    return iAssocJet;
+
+  }  // end 'HuntLambdasByDistance(ParInfo& lambda)'
 
 
 
@@ -419,7 +441,7 @@ namespace SColdQcdCorrelatorAnalysis {
     // breadth-first search of all connected vertices for particle w/ barcode 'idToFind'
     int  nVtxChecked     = 0;
     bool isParticleFound = false;
-    while (!isParticleFound || (nVtxChecked >= m_const.maxVtxToCheck)) {
+    while (!isParticleFound && (nVtxChecked < m_const.maxVtxToCheck)) {
 
       // transfer vertices to-check to being-checked list
       m_vecVtxChecking.clear();
@@ -461,39 +483,189 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  bool SLambdaJetHunter::IsInPHG4DecayChain(const int idToFind, PHCompositeNode* topNode) {
+  bool SLambdaJetHunter::IsInPHG4DecayChain(const int idToFind, const int idLambda, PHCompositeNode* topNode) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
       cout << "SLambdaJetHunter::IsInPHG4DecayChain(int) checking if particle is in Geant decay chain" << endl;
     }
 
-    // make sure vectors are clear and add initial vertex
-    m_vecVtxChecking.clear();
-    m_vecVtxToCheck.clear();
+    // grab truth information
+    PHG4TruthInfoContainer*            container = GetTruthContainer(topNode);
+    PHG4TruthInfoContainer::ConstRange particles = container -> GetParticleRange();
 
-    int  nVtxChecked     = 0;
+    // loop over particles
+    m_vecIDToCheck.clear();
+    for (
+      PHG4TruthInfoContainer::ConstIterator itPar = particles.first;
+      itPar != particles.second;
+      ++itPar
+    ) {
+
+      // grab current particle
+      PHG4Particle* phPar = itPar -> second;
+
+      // grab parent if information is available
+      PHG4Particle* phParent = NULL;
+      if (phPar -> get_parent_id() != 0) {
+        phParent = container -> GetParticle(phPar -> get_parent_id());
+      } else {
+        continue;
+      }
+
+      // check if parent matches lambda barcode/pid
+      const bool hasLambdaBarcode = (phParent -> get_barcode() == idLambda);
+      const bool hasLambdaPID     = (phParent -> get_pid()     == m_const.pidLambda);
+      if (hasLambdaBarcode && hasLambdaPID) {
+            m_vecIDToCheck.push_back(phPar -> get_barcode());
+      }
+    }  // end particle loop
+
+    // check if idToFind is among barcodes
     bool isParticleFound = false;
-    while (!isParticleFound || (nVtxChecked >= m_const.maxVtxToCheck)) {
-
-      PHG4TruthInfoContainer*            container = GetTruthContainer(topNode);
-      PHG4TruthInfoContainer::ConstRange particles = container -> GetParticleRange();
-      for (
-        PHG4TruthInfoContainer::ConstIterator itPar = particles.first;
-        itPar != particles.second;
-        ++itPar
-      ) {
-
-        /* checking parent ID goes here */
-
-      }  // end particle loop 
-
-      ++nVtxChecked;
-
-    }  // end while (!isParticleFound)
+    for (const int idToCheck : m_vecIDToCheck) {
+      if (idToCheck == idToFind) {
+        isParticleFound = true;
+        break;
+      }
+    }
     return isParticleFound;
 
-  }  // end 'IsInPHG4DecayChain(int, PHCompositeNode*)'
+  }  // end 'IsInPHG4DecayChain(int, PHG4Particle*, PHCompositeNode*)'
+
+
+
+  bool SLambdaJetHunter::IsGoodParticle(ParInfo& particle) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::IsGoodParticle(ParInfo&) checking if particle is good" << endl;
+    }
+
+    // check charge if needed
+    bool isGoodCharge = true;
+    if (m_config.isCharged) {
+      isGoodCharge = (particle.charge != 0.);
+    }
+
+    // FIXME overloaded <, etc. operators aren't behaving as expected
+    const bool isInPtAccept  = ((particle.pt > m_config.parAccept.first.pt) && (particle.pt < m_config.parAccept.second.pt));
+    const bool isInEtaAccept = ((particle.eta > m_config.parAccept.first.eta) && (particle.eta < m_config.parAccept.second.eta));
+
+    // run other checks and return
+    const bool isInAccept = (isInPtAccept && isInEtaAccept);
+    return (isGoodCharge && isInAccept);
+
+  }  // end 'IsGoodParticle(ParInfo&)'
+
+
+
+  bool SLambdaJetHunter::IsGoodLambda(ParInfo& lambda) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::IsGoodLambda(ParInfo&) checking if lambda is good" << endl;
+    }
+
+    // dumb check
+    const bool dumb1 = (lambda.eta >= m_config.parAccept.first.eta);
+    const bool dumb2 = (lambda.eta <= m_config.parAccept.second.eta);
+    const bool dumb  = (dumb1 && dumb2);
+
+    // FIXME overloaded <, etc. operators aren't behaving as expected
+    const bool isInPtAccept  = ((lambda.pt > m_config.parAccept.first.pt) && (lambda.pt < m_config.parAccept.second.pt));
+    const bool isInEtaAccept = ((lambda.eta > m_config.parAccept.first.eta) && (lambda.eta < m_config.parAccept.second.eta));
+
+    // make sure lambda is in acceptance
+    const bool isInAccept = (isInPtAccept && isInEtaAccept);
+    return isInAccept;
+
+  }  // end 'IsGoodLambda(ParInfo&)'
+
+
+
+  bool SLambdaJetHunter::IsLambda(const int pid) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::IsLambda(int) checking if particle is a lambda" << endl;
+    }
+
+    return (pid == m_const.pidLambda);
+
+  }  // end 'IsLambda(int)'
+
+
+
+  bool SLambdaJetHunter::IsNewLambda(const int id) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::IsNewLambda(int) checking if lambda is already found" << endl;
+    }
+
+    return (m_mapLambdaJetAssoc.count(id) == 0);
+
+  }  // end 'IsNewLambda(int)'
+
+
+
+  bool SLambdaJetHunter::HasParentInfo(const int parent) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::HasParentInfo(int) checking if PHG4particle has parent info" << endl;
+    }
+
+    return (parent != 0);
+
+  }  // end 'HasParentInfo(int)'
+
+
+
+  double SLambdaJetHunter::GetLambdaAssocZ(ParInfo& lambda) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::GetLambdaAssocZ(ParInfo&) getting z of lambda relative to associated jet" << endl;
+    }
+
+    // get index of associated jet
+    const int iAssoc = m_mapLambdaJetAssoc[lambda.barcode];
+
+    // get total momenta
+    const double pJet    = hypot(m_jetInfo.at(iAssoc).px, m_jetInfo.at(iAssoc).py, m_jetInfo.at(iAssoc).pz);
+    const double pLambda = hypot(lambda.px, lambda.py, lambda.pz);
+
+    // calculate z and return
+    const double zLambda = pLambda / pJet;
+    return zLambda;
+
+  }  // end 'GetLambdaAssocZ(ParInfo& lambda)'
+
+
+
+  double SLambdaJetHunter::GetLambdaAssocDr(ParInfo& lambda) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::GetLambdaAssocDr(ParInfo&) getting delta-R of lambda relative to associated jet" << endl;
+    }
+
+    // get index of associated jet
+    const int iAssoc = m_mapLambdaJetAssoc[lambda.barcode];
+
+    // calculate delta-phi
+    double dfLambda = lambda.phi - m_jetInfo.at(iAssoc).phi;
+    if (dfLambda < 0.)             dfLambda += TMath::TwoPi();
+    if (dfLambda > TMath::TwoPi()) dfLambda -= TMath::TwoPi();
+
+    // calculate dr and return
+    const double dhLambda = lambda.eta - m_jetInfo.at(iAssoc).eta;
+    const double drLambda = hypot(dfLambda, dhLambda);
+    return drLambda;
+
+  }  // end 'GetLambdaAssocZ(ParInfo& lambda)'
 
 }  // end SColdQcdCorrelatorAnalysis namespace
 

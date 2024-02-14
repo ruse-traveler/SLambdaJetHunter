@@ -88,6 +88,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
       // vectors for internal calculations
       vector<int>               m_vecSubEvts;
+      vector<int>               m_vecIDToCheck;
       vector<PseudoJet>         m_jets;
       vector<HepMC::GenVertex*> m_vecVtxToCheck;
       vector<HepMC::GenVertex*> m_vecVtxChecking;
@@ -99,7 +100,6 @@ namespace SColdQcdCorrelatorAnalysis {
       //   - FIXME remove when i/o of utility structs is ready
       uint64_t m_evtNJets;
       uint64_t m_evtNLambdas;
-      uint64_t m_evtNTaggedJets;
       uint64_t m_evtNChrgPars;
       uint64_t m_evtNNeuPars;
       double   m_evtSumEPar;
@@ -142,16 +142,23 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<vector<double>> m_cstPhi;
 
       // analysis methods (*.ana.h)
-      void GrabEventInfo(PHCompositeNode* topNode);
-      void MakeJets(PHCompositeNode* topNode);
-      void CollectOutput(PHCompositeNode* topNode);
-      void AssociateLambdasToJets(PHCompositeNode* topNode);
-      void FillOutputTree();
-      bool IsGoodParticle(ParInfo& particle);
-      bool IsLambda(const int pid);
-      bool IsNewLambda(const int id);
-      bool IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxToStart);
-      bool IsInPHG4DecayChain(const int idToFind, PHCompositeNode* topNode);
+      void   GrabEventInfo(PHCompositeNode* topNode);
+      void   FindLambdas(PHCompositeNode* topNode);
+      void   MakeJets(PHCompositeNode* topNode);
+      void   CollectJetOutput(PHCompositeNode* topNode);
+      void   AssociateLambdasToJets(PHCompositeNode* topNode);
+      void   FillOutputTree();
+      int    HuntLambdasByDecayChain(ParInfo& lambda, PHCompositeNode* topNode);
+      int    HuntLambdasByDistance(ParInfo& lambda);
+      bool   IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxToStart);
+      bool   IsInPHG4DecayChain(const int idToFind, const int idLambda, PHCompositeNode* topNode);
+      bool   IsGoodParticle(ParInfo& particle);
+      bool   IsGoodLambda(ParInfo& lambda);
+      bool   IsLambda(const int pid);
+      bool   IsNewLambda(const int id);
+      bool   HasParentInfo(const int parent);
+      double GetLambdaAssocZ(ParInfo& lambda);
+      double GetLambdaAssocDr(ParInfo& lambda);
 
       // system methods (*.sys.h)
       void InitTree();

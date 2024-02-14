@@ -124,12 +124,13 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // reset output variables
     m_genEvtInfo.Reset();
+    m_lambdaInfo.clear();
     m_jetInfo.clear();
     m_cstInfo.clear();
-    m_lambdaInfo.clear();
 
     // reset lists/associations
     m_vecSubEvts.clear();
+    m_vecIDToCheck.clear();
     m_jets.clear();
     m_vecVtxToCheck.clear();
     m_vecVtxChecking.clear();
@@ -138,7 +139,6 @@ namespace SColdQcdCorrelatorAnalysis {
     // FIXME remove when i/o of utility structs is ready
     m_evtNJets = 999.;
     m_evtNLambdas = 999.;
-    m_evtNTaggedJets = 999.;
     m_evtNChrgPars = 999.;
     m_evtNNeuPars  = 999.;;
     m_evtSumEPar = -999.;

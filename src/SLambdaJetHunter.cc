@@ -92,8 +92,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // run analysis routines
     GrabEventInfo(topNode);
+    FindLambdas(topNode);
     MakeJets(topNode);
-    CollectOutput(topNode);
+    CollectJetOutput(topNode);
     AssociateLambdasToJets(topNode);
 
     // fill tree and return
