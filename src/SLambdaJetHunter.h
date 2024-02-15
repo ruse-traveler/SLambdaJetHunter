@@ -55,6 +55,8 @@ namespace SColdQcdCorrelatorAnalysis {
 
      public:
 
+       enum Associator { Decay, Distance, Barcode };
+
        // ctor/dtor
        SLambdaJetHunter(const string &name = "SLambdaJetHunter", const bool debug = false);
        SLambdaJetHunter(SLambdaJetHunterConfig& config);
@@ -89,7 +91,7 @@ namespace SColdQcdCorrelatorAnalysis {
       // vectors for internal calculations
       vector<int>               m_vecSubEvts;
       vector<int>               m_vecIDToCheck;
-      vector<PseudoJet>         m_jets;
+      vector<PseudoJet>         m_vecFastJets;
       vector<HepMC::GenVertex*> m_vecVtxToCheck;
       vector<HepMC::GenVertex*> m_vecVtxChecking;
 
@@ -100,6 +102,7 @@ namespace SColdQcdCorrelatorAnalysis {
       //   - FIXME remove when i/o of utility structs is ready
       uint64_t m_evtNJets;
       uint64_t m_evtNLambdas;
+      uint64_t m_evtNTaggedJets;
       uint64_t m_evtNChrgPars;
       uint64_t m_evtNNeuPars;
       double   m_evtSumEPar;
@@ -132,6 +135,7 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<double>   m_jetPhi;
       // output constituent variables
       vector<vector<int>>    m_cstID;
+      vector<vector<int>>    m_cstPID;
       vector<vector<int>>    m_cstJetID;
       vector<vector<int>>    m_cstEmbedID;
       vector<vector<double>> m_cstZ;

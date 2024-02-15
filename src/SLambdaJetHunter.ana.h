@@ -164,7 +164,7 @@ namespace SColdQcdCorrelatorAnalysis {
     ClusterSequence* sequence = new ClusterSequence(vecPseudoJets, definition);
 
     // grab jets and return
-    m_jets = sequence -> inclusive_jets();
+    m_vecFastJets = sequence -> inclusive_jets();
     return;
 
   }  // end 'MakeJets(PHCompositeNode*)'
@@ -179,22 +179,26 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // reserve space for fastjet output
-    m_jetInfo.resize( m_jets.size() );
-    m_cstInfo.resize( m_jets.size() );
+    m_jetInfo.resize( m_vecFastJets.size() );
+    m_cstInfo.resize( m_vecFastJets.size() );
 
     // loop over fastjet output
-    for (size_t iJet = 0; iJet < m_jets.size(); iJet++) {
+    for (size_t iJet = 0; iJet < m_vecFastJets.size(); iJet++) {
 
       // grab jet info
-      m_jetInfo[iJet].SetInfo( m_jets[iJet] );
+      m_jetInfo[iJet].SetInfo( m_vecFastJets[iJet] );
       m_jetInfo[iJet].jetID = iJet;
 
       // loop over constituents
-      m_cstInfo[iJet].resize( m_jets[iJet].constituents().size() );
-      for (size_t iCst = 0; iCst < m_jets[iJet].constituents().size(); iCst++) {
+      m_cstInfo[iJet].resize( m_vecFastJets[iJet].constituents().size() );
+      for (size_t iCst = 0; iCst < m_vecFastJets[iJet].constituents().size(); iCst++) {
 
         // grab cst info
-        m_cstInfo[iJet][iCst].SetInfo( m_jets[iJet].constituents()[iCst] );
+        m_cstInfo[iJet][iCst].SetInfo( m_vecFastJets[iJet].constituents()[iCst] );
+
+        // get particle PDG
+        HepMC::GenParticle* hepCst = GetHepMCGenParticleFromBarcode(m_cstInfo[iJet][iCst].cstID, topNode);
+        m_cstInfo[iJet][iCst].pid  = hepCst -> pdg_id();
 
         // run calculations
         const float pCst  = hypot( m_cstInfo[iJet][iCst].px, m_cstInfo[iJet][iCst].py, m_cstInfo[iJet][iCst].pz );
@@ -257,6 +261,7 @@ namespace SColdQcdCorrelatorAnalysis {
     //   - FIXME remove when i/o of utility structs is ready
     m_evtNJets       = m_jetInfo.size();
     m_evtNLambdas    = m_mapLambdaJetAssoc.size();
+    m_evtNTaggedJets = 1.;   // TODO put in
     m_evtNChrgPars   = m_genEvtInfo.nChrgPar;
     m_evtNNeuPars    = m_genEvtInfo.nNeuPar;
     m_evtSumEPar     = m_genEvtInfo.eSumChrg + m_genEvtInfo.eSumNeu;
@@ -286,7 +291,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
       // collect associate jet information
       m_lambdaJetID.push_back( m_mapLambdaJetAssoc[lambda.barcode] );
-      if (m_mapLambdaJetAssoc[lambda.barcode] == -1) {
+      if (m_mapLambdaJetAssoc[lambda.barcode] > -1) {
         m_lambdaZ.push_back( GetLambdaAssocZ(lambda) );
         m_lambdaDr.push_back( GetLambdaAssocDr(lambda) );
       } else {
@@ -310,6 +315,7 @@ namespace SColdQcdCorrelatorAnalysis {
     // collect cst information
     //   - FIXME remove when i/o of utility structs is ready
     m_cstID.resize( m_cstInfo.size() );
+    m_cstPID.resize( m_cstInfo.size() );
     m_cstJetID.resize( m_cstInfo.size() );
     m_cstEmbedID.resize( m_cstInfo.size() );
     m_cstZ.resize( m_cstInfo.size() );
@@ -320,6 +326,7 @@ namespace SColdQcdCorrelatorAnalysis {
     m_cstPhi.resize( m_cstInfo.size() );
     for (size_t iJet = 0; iJet < m_cstInfo.size(); iJet++) {
       m_cstID[iJet].resize( m_cstInfo[iJet].size() );
+      m_cstPID[iJet].resize( m_cstInfo[iJet].size() );
       m_cstJetID[iJet].resize( m_cstInfo[iJet].size() );
       m_cstEmbedID[iJet].resize( m_cstInfo[iJet].size() );
       m_cstZ[iJet].resize( m_cstInfo[iJet].size() );
@@ -330,6 +337,7 @@ namespace SColdQcdCorrelatorAnalysis {
       m_cstPhi[iJet].resize( m_cstInfo[iJet].size() );
       for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
         m_cstID[iJet][iCst]      = m_cstInfo[iJet][iCst].cstID;
+        m_cstPID[iJet][iCst]     = m_cstInfo[iJet][iCst].pid;
         m_cstJetID[iJet][iCst]   = m_cstInfo[iJet][iCst].jetID;
         m_cstEmbedID[iJet][iCst] = m_cstInfo[iJet][iCst].embedID;
         m_cstZ[iJet][iCst]       = m_cstInfo[iJet][iCst].z;
@@ -566,11 +574,6 @@ namespace SColdQcdCorrelatorAnalysis {
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
       cout << "SLambdaJetHunter::IsGoodLambda(ParInfo&) checking if lambda is good" << endl;
     }
-
-    // dumb check
-    const bool dumb1 = (lambda.eta >= m_config.parAccept.first.eta);
-    const bool dumb2 = (lambda.eta <= m_config.parAccept.second.eta);
-    const bool dumb  = (dumb1 && dumb2);
 
     // FIXME overloaded <, etc. operators aren't behaving as expected
     const bool isInPtAccept  = ((lambda.pt > m_config.parAccept.first.pt) && (lambda.pt < m_config.parAccept.second.pt));
