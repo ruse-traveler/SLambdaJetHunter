@@ -283,6 +283,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
       // collect general information
       m_lambdaID.push_back( lambda.barcode );
+      m_lambdaPID.push_back( lambda.pid );
       m_lambdaEmbedID.push_back( lambda.embedID );
       m_lambdaE.push_back( lambda.ene );
       m_lambdaPt.push_back( lambda.pt );
@@ -594,7 +595,7 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::IsLambda(int) checking if particle is a lambda" << endl;
     }
 
-    return (pid == m_const.pidLambda);
+    return (abs(pid) == m_const.pidLambda);
 
   }  // end 'IsLambda(int)'
 

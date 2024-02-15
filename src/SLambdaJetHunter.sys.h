@@ -53,6 +53,7 @@ namespace SColdQcdCorrelatorAnalysis {
     m_outTree -> Branch("PartonB_Pz",     &m_evtPartPz.second, "PartonB_Pz/D");
     m_outTree -> Branch("PartonB_E",      &m_evtPartE.second,  "PartonB_E/D");
     m_outTree -> Branch("LambdaID",       &m_lambdaID);
+    m_outTree -> Branch("LambdaPID",      &m_lambdaPID);
     m_outTree -> Branch("LambdaJetID",    &m_lambdaJetID);
     m_outTree -> Branch("LambdaEmbedID",  &m_lambdaEmbedID);
     m_outTree -> Branch("LambdaZ",        &m_lambdaZ);
@@ -155,6 +156,7 @@ namespace SColdQcdCorrelatorAnalysis {
     m_evtPartPz      = {numeric_limits<double>::min(), numeric_limits<double>::min()};
     m_evtPartE       = {numeric_limits<double>::min(), numeric_limits<double>::min()};
     m_lambdaID.clear();
+    m_lambdaPID.clear();
     m_lambdaJetID.clear();
     m_lambdaEmbedID.clear();
     m_lambdaZ.clear();

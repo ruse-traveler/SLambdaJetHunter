@@ -117,6 +117,7 @@ namespace SColdQcdCorrelatorAnalysis {
       pair<double, double> m_evtPartE;
       // output lambda variables
       vector<int>    m_lambdaID;
+      vector<int>    m_lambdaPID;
       vector<int>    m_lambdaJetID;
       vector<int>    m_lambdaEmbedID;
       vector<double> m_lambdaZ;
