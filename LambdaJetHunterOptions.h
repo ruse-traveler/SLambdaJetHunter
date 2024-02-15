@@ -83,7 +83,7 @@ namespace LambdaJetHunterOptions {
       .moduleName  = "SLambdaJetHunter",
       .outTreeName = "LambdaJetTree",
       .outFileName = outFile,
-      .associator  = SLambdaJetHunter::Associator::Distance,
+      .associator  = SLambdaJetHunter::Associator::Barcode,
       .isCharged   = false,
       .rJet        = 0.4,
       .jetAlgo     = "antikt_algorithm",

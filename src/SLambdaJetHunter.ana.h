@@ -616,7 +616,24 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::HuntLambdasByBarcode(ParInfo&) hunting for lambdas by inspecting barcode" << endl;
     }
 
+    // return nullopt by default
     optional<int> iAssocJet = nullopt;
+
+    // loop through jet constituents and check barcode
+    bool foundAssocJet = false;
+    for (size_t iJet = 0; iJet < m_jetInfo.size(); iJet++) {
+      for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
+        if (m_cstInfo[iJet][iCst].cstID == lambda.barcode) {
+          foundAssocJet = true;
+          iAssocJet     = iJet;
+          break;
+        }
+      }  // end cst loop
+
+      // if found association, exit loop
+      if (foundAssocJet) break;
+
+    }  // end jet loop
     return iAssocJet;
 
   }  // end 'HuntLambdasByBarcode(ParInfo&)'
@@ -672,7 +689,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // print debug statement
     if (m_config.isDebugOn) {
-      cout << "SLambdaJetHunter::HuntLambdasByDistance(ParInfo&) hunting for lambds by distance" << endl;
+      cout << "SLambdaJetHunter::HuntLambdasByDistance(ParInfo&) hunting for lambdas by distance" << endl;
     }
 
     // return nullopt by default
@@ -698,7 +715,7 @@ namespace SColdQcdCorrelatorAnalysis {
         drAssocBest = drAssoc;
         iAssocJet   = iJet;
       }
-    }
+    }  // end jet loop
     return iAssocJet;
 
   }  // end 'HuntLambdasByDistance(ParInfo& lambda)'
