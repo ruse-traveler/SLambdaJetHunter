@@ -17,6 +17,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <optional>
 // root libraries
 #include <TFile.h>
 #include <TTree.h>
@@ -55,7 +56,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
      public:
 
-       enum Associator { Decay, Distance, Barcode };
+       enum Associator { Barcode, Decay, Distance };
 
        // ctor/dtor
        SLambdaJetHunter(const string &name = "SLambdaJetHunter", const bool debug = false);
@@ -147,23 +148,24 @@ namespace SColdQcdCorrelatorAnalysis {
       vector<vector<double>> m_cstPhi;
 
       // analysis methods (*.ana.h)
-      void   GrabEventInfo(PHCompositeNode* topNode);
-      void   FindLambdas(PHCompositeNode* topNode);
-      void   MakeJets(PHCompositeNode* topNode);
-      void   CollectJetOutput(PHCompositeNode* topNode);
-      void   AssociateLambdasToJets(PHCompositeNode* topNode);
-      void   FillOutputTree();
-      int    HuntLambdasByDecayChain(ParInfo& lambda, PHCompositeNode* topNode);
-      int    HuntLambdasByDistance(ParInfo& lambda);
-      bool   IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxToStart);
-      bool   IsInPHG4DecayChain(const int idToFind, const int idLambda, PHCompositeNode* topNode);
-      bool   IsGoodParticle(ParInfo& particle);
-      bool   IsGoodLambda(ParInfo& lambda);
-      bool   IsLambda(const int pid);
-      bool   IsNewLambda(const int id);
-      bool   HasParentInfo(const int parent);
-      double GetLambdaAssocZ(ParInfo& lambda);
-      double GetLambdaAssocDr(ParInfo& lambda);
+      void          GrabEventInfo(PHCompositeNode* topNode);
+      void          FindLambdas(PHCompositeNode* topNode);
+      void          MakeJets(PHCompositeNode* topNode);
+      void          CollectJetOutput(PHCompositeNode* topNode);
+      void          AssociateLambdasToJets(PHCompositeNode* topNode);
+      void          FillOutputTree();
+      bool          IsGoodParticle(ParInfo& particle);
+      bool          IsGoodLambda(ParInfo& lambda);
+      bool          IsLambda(const int pid);
+      bool          IsNewLambda(const int id);
+      bool          HasParentInfo(const int parent);
+      bool          IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxToStart);
+      bool          IsInPHG4DecayChain(const int idToFind, const int idLambda, PHCompositeNode* topNode);
+      double        GetLambdaAssocZ(ParInfo& lambda);
+      double        GetLambdaAssocDr(ParInfo& lambda);
+      optional<int> HuntLambdasByBarcode(ParInfo& lambda);
+      optional<int> HuntLambdasByDecayChain(ParInfo& lambda, PHCompositeNode* topNode);
+      optional<int> HuntLambdasByDistance(ParInfo& lambda);
 
       // system methods (*.sys.h)
       void InitTree();

@@ -77,21 +77,21 @@ namespace LambdaJetHunterOptions {
   SLambdaJetHunterConfig GetConfig(const int verbosity, const string outFile) {
 
     SLambdaJetHunterConfig cfg {
-      .verbosity       = verbosity,
-      .isDebugOn       = true,
-      .isEmbed         = false,
-      .useOnlyDistHunt = false,
-      .moduleName      = "SLambdaJetHunter",
-      .outTreeName     = "LambdaJetTree",
-      .outFileName     = outFile,
-      .isCharged       = false,
-      .rJet            = 0.4,
-      .jetAlgo         = "antikt_algorithm",
-      .jetRecomb       = "pt_scheme",
-      .vzAccept        = vzEvtRange,
-      .vrAccept        = vrEvtRange,
-      .parAccept       = GetParAccept(),
-      .jetAccept       = GetJetAccept()
+      .verbosity   = verbosity,
+      .isDebugOn   = true,
+      .isEmbed     = false,
+      .moduleName  = "SLambdaJetHunter",
+      .outTreeName = "LambdaJetTree",
+      .outFileName = outFile,
+      .associator  = SLambdaJetHunter::Associator::Distance,
+      .isCharged   = false,
+      .rJet        = 0.4,
+      .jetAlgo     = "antikt_algorithm",
+      .jetRecomb   = "pt_scheme",
+      .vzAccept    = vzEvtRange,
+      .vrAccept    = vrEvtRange,
+      .parAccept   = GetParAccept(),
+      .jetAccept   = GetJetAccept()
     };
     return cfg;
 

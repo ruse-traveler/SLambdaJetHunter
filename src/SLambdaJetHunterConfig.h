@@ -30,19 +30,19 @@ namespace SColdQcdCorrelatorAnalysis {
   struct SLambdaJetHunterConfig {
 
     // system options
-    int    verbosity       = 0;
-    bool   isDebugOn       = false;
-    bool   isEmbed         = false;
-    bool   useOnlyDistHunt = false;
-    string moduleName      = "SLambdaJetHunter";
-    string outFileName     = "";
-    string outTreeName     = "LambdaJetTree";
+    int    verbosity   = 0;
+    bool   isDebugOn   = false;
+    bool   isEmbed     = false;
+    string moduleName  = "SLambdaJetHunter";
+    string outFileName = "";
+    string outTreeName = "LambdaJetTree";
 
     // jet options
-    bool   isCharged = true;
-    float  rJet      = 0.4;
-    string jetAlgo   = "antikt_algorithm";
-    string jetRecomb = "pt_scheme";
+    int    associator = 0;
+    bool   isCharged  = true;
+    float  rJet       = 0.4;
+    string jetAlgo    = "antikt_algorithm";
+    string jetRecomb  = "pt_scheme";
 
     // acceptance parameters
     pair<float,   float>   vzAccept;
