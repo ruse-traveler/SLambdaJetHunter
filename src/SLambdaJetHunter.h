@@ -56,12 +56,12 @@ namespace SColdQcdCorrelatorAnalysis {
 
      public:
 
-       enum Associator { Barcode, Decay, Distance };
+      enum Associator { Barcode, Decay, Distance };
 
-       // ctor/dtor
-       SLambdaJetHunter(const string &name = "SLambdaJetHunter", const bool debug = false);
-       SLambdaJetHunter(SLambdaJetHunterConfig& config);
-       ~SLambdaJetHunter() override;
+      // ctor/dtor
+      SLambdaJetHunter(const string &name = "SLambdaJetHunter", const bool debug = false);
+      SLambdaJetHunter(SLambdaJetHunterConfig& config);
+      ~SLambdaJetHunter() override;
 
        // f4a methods
       int Init(PHCompositeNode *topNode)          override;
@@ -154,15 +154,17 @@ namespace SColdQcdCorrelatorAnalysis {
       void          CollectJetOutput(PHCompositeNode* topNode);
       void          AssociateLambdasToJets(PHCompositeNode* topNode);
       void          FillOutputTree();
+      bool          HasParentInfo(const int parent);
+      bool          HasLambda(JetInfo& jet);
       bool          IsGoodParticle(ParInfo& particle);
       bool          IsGoodLambda(ParInfo& lambda);
       bool          IsLambda(const int pid);
       bool          IsNewLambda(const int id);
-      bool          HasParentInfo(const int parent);
       bool          IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxToStart);
       bool          IsInPHG4DecayChain(const int idToFind, const int idLambda, PHCompositeNode* topNode);
       double        GetLambdaAssocZ(ParInfo& lambda);
       double        GetLambdaAssocDr(ParInfo& lambda);
+      uint64_t      GetNTaggedJets();
       optional<int> HuntLambdasByBarcode(ParInfo& lambda);
       optional<int> HuntLambdasByDecayChain(ParInfo& lambda, PHCompositeNode* topNode);
       optional<int> HuntLambdasByDistance(ParInfo& lambda);

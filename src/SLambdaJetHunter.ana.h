@@ -275,7 +275,7 @@ namespace SColdQcdCorrelatorAnalysis {
     //   - FIXME remove when i/o of utility structs is ready
     m_evtNJets       = m_jetInfo.size();
     m_evtNLambdas    = m_mapLambdaJetAssoc.size();
-    m_evtNTaggedJets = 1.;   // TODO put in
+    m_evtNTaggedJets = GetNTaggedJets();
     m_evtNChrgPars   = m_genEvtInfo.nChrgPar;
     m_evtNNeuPars    = m_genEvtInfo.nNeuPar;
     m_evtSumEPar     = m_genEvtInfo.eSumChrg + m_genEvtInfo.eSumNeu;
@@ -318,7 +318,7 @@ namespace SColdQcdCorrelatorAnalysis {
     // collect jet information
     //   - FIXME remove when i/o of utility structs is ready
     for (JetInfo& jet : m_jetInfo) {
-      m_jetHasLambda.push_back( false );  // TODO fill in when ready
+      m_jetHasLambda.push_back( HasLambda(jet) );
       m_jetNCst.push_back( jet.nCsts );
       m_jetID.push_back( jet.jetID );
       m_jetE.push_back( jet.ene );
@@ -368,6 +368,39 @@ namespace SColdQcdCorrelatorAnalysis {
     return;
 
   }  // end 'FillOutputTree()'
+
+
+
+  bool SLambdaJetHunter::HasParentInfo(const int parent) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::HasParentInfo(int) checking if PHG4particle has parent info" << endl;
+    }
+
+    return (parent != 0);
+
+  }  // end 'HasParentInfo(int)'
+
+
+
+  bool SLambdaJetHunter::HasLambda(JetInfo& jet) {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::HasLambda(JetInfo&) checking if jet has associated lambda" << endl;
+    }
+
+    bool hasLambda = false;
+    for (auto& [lamID, jetID]: m_mapLambdaJetAssoc) {
+      if (jetID == (int) jet.jetID) {
+        hasLambda = true;
+        break;
+      }
+    }  // end map loop
+    return hasLambda;
+
+  }  // end 'HasLambda(JetInfo&)'
 
 
 
@@ -438,19 +471,6 @@ namespace SColdQcdCorrelatorAnalysis {
     return (m_mapLambdaJetAssoc.count(id) == 0);
 
   }  // end 'IsNewLambda(int)'
-
-
-
-  bool SLambdaJetHunter::HasParentInfo(const int parent) {
-
-    // print debug statement
-    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
-      cout << "SLambdaJetHunter::HasParentInfo(int) checking if PHG4particle has parent info" << endl;
-    }
-
-    return (parent != 0);
-
-  }  // end 'HasParentInfo(int)'
 
 
 
@@ -606,6 +626,23 @@ namespace SColdQcdCorrelatorAnalysis {
     return drLambda;
 
   }  // end 'GetLambdaAssocZ(ParInfo& lambda)'
+
+
+
+  uint64_t SLambdaJetHunter::GetNTaggedJets() {
+
+    // print debug statement
+    if (m_config.isDebugOn && (m_config.verbosity > 5)) {
+      cout << "SLambdaJetHunter::GetNTaggedJets() getting no. of jets with a lambda in them" << endl;
+    }
+
+    uint64_t nTaggedJets = 0;
+    for (auto& [lamID, jetID] : m_mapLambdaJetAssoc) {
+      if (jetID > -1) ++nTaggedJets;
+    }
+    return nTaggedJets;
+
+  }  // end 'GetNTaggedJets()'
 
 
 
