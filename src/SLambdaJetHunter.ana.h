@@ -34,10 +34,7 @@
 #include <g4main/PHG4Particlev2.h>
 #include <g4main/PHG4TruthInfoContainer.h>
 // analysis utilities
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/EvtTools.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/JetTools.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/CstTools.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/GenTools.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/SCorrelatorUtilities.h"
 
 #pragma GCC diagnostic pop
 

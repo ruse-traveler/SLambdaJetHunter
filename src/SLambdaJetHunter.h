@@ -31,10 +31,7 @@
 #include <fun4all/SubsysReco.h>
 // analysis utilities
 #include "SLambdaJetHunterConfig.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/EvtTools.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/JetTools.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/CstTools.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/GenTools.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/SCorrelatorUtilities.h"
 
 #pragma GCC diagnostic pop
 
