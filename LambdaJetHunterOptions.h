@@ -13,14 +13,13 @@
 #include <string>
 #include <utility>
 // analysis utilities
-#include "/sphenix/user/danderson/install/include/slambdajethunter/SLambdaJetHunter.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/Types.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/Constants.h"
 #include "/sphenix/user/danderson/install/include/slambdajethunter/SLambdaJetHunterConfig.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/SCorrelatorUtilities.h"
 
 // make common namespacs implicit
 using namespace std;
 using namespace SColdQcdCorrelatorAnalysis;
-using namespace SColdQcdCorrelatorAnalysis::SCorrelatorUtilities;
 
 
 
@@ -44,26 +43,38 @@ namespace LambdaJetHunterOptions {
 
   // bundle acceptances into pairs --------------------------------------------
 
-  pair<ParInfo, ParInfo> GetParAccept() {
+  pair<Types::ParInfo, Types::ParInfo> GetParAccept() {
 
-    pair<ParInfo, ParInfo> parAccept;
-    parAccept.first.pt   = ptParRange.first;
-    parAccept.first.eta  = etaParRange.first;
-    parAccept.second.pt  = ptParRange.second;
-    parAccept.second.eta = etaParRange.second;
+    // create maximal range
+    pair<Types::ParInfo, Types::ParInfo> parAccept = {
+      Types::ParInfo(Const::Init::Minimize),
+      Types::ParInfo(Const::Init::Maximize)
+    };
+
+    // set specific bounds
+    parAccept.first.SetPT( ptParRange.first );
+    parAccept.first.SetEta( etaParRange.first );
+    parAccept.second.SetPT( ptParRange.second );
+    parAccept.second.SetEta( etaParRange.second );
     return parAccept;
 
   }  // end 'GetParAccept()'
 
 
 
-  pair<JetInfo, JetInfo> GetJetAccept() {
+  pair<Types::JetInfo, Types::JetInfo> GetJetAccept() {
 
-    pair<JetInfo, JetInfo> jetAccept;
-    jetAccept.first.pt   = ptJetRange.first;
-    jetAccept.first.eta  = etaJetRange.first;
-    jetAccept.second.pt  = ptJetRange.second;
-    jetAccept.second.eta = etaJetRange.second;
+    // create maximal range
+    pair<Types::JetInfo, Types::JetInfo> jetAccept = {
+      Types::JetInfo(Const::Init::Minimize),
+      Types::JetInfo(Const::Init::Maximize)
+    };
+
+    // set specific bounds
+    jetAccept.first.SetPT( ptJetRange.first );
+    jetAccept.first.SetEta( etaJetRange.first );
+    jetAccept.second.SetPT( ptJetRange.second );
+    jetAccept.second.SetEta( etaJetRange.second );
     return jetAccept;
 
   }  // end 'GetJetAccept()'

@@ -7,12 +7,7 @@
 // jets in pythia events.
 // ----------------------------------------------------------------------------
 
-#ifndef SLAMBDAJETHUNTER_SYS_H
-#define SLAMBDAJETHUNTER_SYS_H
-
-// c++ utilities
-#include <limits>
-#include <cassert>
+#pragma once
 
 // make common namespaces implicit
 using namespace std;
@@ -187,8 +182,6 @@ namespace SColdQcdCorrelatorAnalysis {
   }  // end 'ResetOutput()'
 
 }  // end SColdQcdCorrelatorAnalysis namespace
-
-#endif
 
 // end ------------------------------------------------------------------------
 

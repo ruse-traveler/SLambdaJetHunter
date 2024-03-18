@@ -7,42 +7,12 @@
 // jets in pythia events.
 // ----------------------------------------------------------------------------
 
-#ifndef SLAMBDAJETHUNTER_ANA_H
-#define SLAMBDAJETHUNTER_ANA_H
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-// c++ utilities
-#include <map>
-#include <cmath>
-#include <limits>
-#include <optional>
-// root libraries
-#include <TMath.h>
-// fastjet libraries
-#include <fastjet/PseudoJet.hh>
-#include <fastjet/JetDefinition.hh>
-#include <fastjet/ClusterSequence.hh>
-#include <fastjet/FunctionOfPseudoJet.hh>
-// hepmc libraries
-#include <HepMC/GenEvent.h>
-#include <HepMC/GenVertex.h>
-#include <HepMC/GenParticle.h>
-// PHG4 libraries
-#include <g4main/PHG4Particle.h>
-#include <g4main/PHG4Particlev2.h>
-#include <g4main/PHG4TruthInfoContainer.h>
-// analysis utilities
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/SCorrelatorUtilities.h"
-
-#pragma GCC diagnostic pop
+#pragma once
 
 // make common namespaces implicit
 using namespace std;
 using namespace fastjet;
 using namespace findNode;
-using namespace SColdQcdCorrelatorAnalysis::SCorrelatorUtilities;
 
 
 
@@ -57,11 +27,11 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::GrabEventInfo(PHCompositeNode*) Grabbing event info" << endl;
     }
 
-    // FIXME turn on subevents after figuring out why
-    //   IsGoodParticle and IsFinalState aren't removing
-    //   non FS particles
+    // FIXME turn on checking all subevents after
+    //   confirming issue with overloaded operators
+    //   is fixed
     //m_vecSubEvts = GrabSubevents(topNode);
-    m_vecSubEvts = {SubEvt::NotEmbedSignal};
+    m_vecSubEvts = {Const::SubEvt::NotEmbedSignal};
     m_genEvtInfo.SetInfo(topNode, m_config.isEmbed, m_vecSubEvts);
     return;
 
@@ -80,7 +50,7 @@ namespace SColdQcdCorrelatorAnalysis {
     for (const int subEvt : m_vecSubEvts) {
 
       // loop over particles
-      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
+      HepMC::GenEvent* genEvt = Interfaces::GetGenEvent(topNode, subEvt);
       for (
         HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
         hepPar != genEvt -> particles_end();
@@ -93,7 +63,7 @@ namespace SColdQcdCorrelatorAnalysis {
         if (!isLambda || !isNew) continue;
 
         // grab info
-        ParInfo lambda( (*hepPar), subEvt );
+        Types::ParInfo lambda( (*hepPar), subEvt );
 
         // check if good
         const bool isGood = IsGoodLambda(lambda);
@@ -127,7 +97,7 @@ namespace SColdQcdCorrelatorAnalysis {
     for (const int subEvt : m_vecSubEvts) {
 
       // loop over particles
-      HepMC::GenEvent* genEvt = GetGenEvent(topNode, subEvt);
+      HepMC::GenEvent* genEvt = Interfaces::GetGenEvent(topNode, subEvt);
       for (
         HepMC::GenEvent::particle_const_iterator hepPar = genEvt -> particles_begin();
         hepPar != genEvt -> particles_end();
@@ -135,16 +105,15 @@ namespace SColdQcdCorrelatorAnalysis {
       ) {
 
         // grab particle info
-        ParInfo particle(*hepPar, subEvt);
+        Types::ParInfo particle(*hepPar, subEvt);
 
         // check if particle is good & final state
-        const bool isParGood    = IsGoodParticle(particle);
-        const bool isFinalState = IsFinalState(particle.status);
-        if (!isParGood || !isFinalState) continue;
+        const bool isParGood = IsGoodParticle(particle);
+        if (!isParGood || !particle.IsFinalState()) continue;
 
         // make pseudojet
-        PseudoJet pseudo(particle.px, particle.py, particle.pz, particle.ene);
-        pseudo.set_user_index(particle.barcode);
+        PseudoJet pseudo(particle.GetPX(), particle.GetPY(), particle.GetPZ(), particle.GetEne());
+        pseudo.set_user_index(particle.GetBarcode());
         vecPseudoJets.push_back(pseudo);
 
       }  // end particle loop
@@ -185,7 +154,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
       // grab jet info
       m_jetInfo[iJet].SetInfo( m_vecFastJets[iJet] );
-      m_jetInfo[iJet].jetID = iJet;
+      m_jetInfo[iJet].SetJetID( iJet );
 
       // loop over constituents
       m_cstInfo[iJet].resize( m_vecFastJets[iJet].constituents().size() );
@@ -195,19 +164,19 @@ namespace SColdQcdCorrelatorAnalysis {
         m_cstInfo[iJet][iCst].SetInfo( m_vecFastJets[iJet].constituents()[iCst] );
 
         // get particle PDG
-        HepMC::GenParticle* hepCst = GetHepMCGenParticleFromBarcode(m_cstInfo[iJet][iCst].cstID, topNode);
-        m_cstInfo[iJet][iCst].pid  = hepCst -> pdg_id();
+        HepMC::GenParticle* hepCst = Tools::GetHepMCGenParticleFromBarcode(m_cstInfo[iJet][iCst].GetCstID(), topNode);
+        m_cstInfo[iJet][iCst].SetPID( hepCst -> pdg_id() );
 
         // run calculations
-        const float pCst  = hypot( m_cstInfo[iJet][iCst].px, m_cstInfo[iJet][iCst].py, m_cstInfo[iJet][iCst].pz );
-        const float pJet  = hypot( m_jetInfo[iJet].px, m_jetInfo[iJet].py, m_jetInfo[iJet].pz );
-        const float dfCst = m_cstInfo[iJet][iCst].phi - m_jetInfo[iJet].phi;
-        const float dhCst = m_cstInfo[iJet][iCst].eta - m_jetInfo[iJet].eta;
+        const float pCst  = hypot( m_cstInfo[iJet][iCst].GetPX(), m_cstInfo[iJet][iCst].GetPY(), m_cstInfo[iJet][iCst].GetPZ() );
+        const float pJet  = hypot( m_jetInfo[iJet].GetPX(), m_jetInfo[iJet].GetPY(), m_jetInfo[iJet].GetPZ() );
+        const float dfCst = m_cstInfo[iJet][iCst].GetPhi() - m_jetInfo[iJet].GetPhi();
+        const float dhCst = m_cstInfo[iJet][iCst].GetEta() - m_jetInfo[iJet].GetEta();
 
         // grab remaining cst info
-        m_cstInfo[iJet][iCst].jetID = m_jetInfo[iJet].jetID;
-        m_cstInfo[iJet][iCst].z     = pCst / pJet;
-        m_cstInfo[iJet][iCst].dr    = hypot( dfCst, dhCst );
+        m_cstInfo[iJet][iCst].SetJetID( m_jetInfo[iJet].GetJetID() );
+        m_cstInfo[iJet][iCst].SetZ( pCst / pJet );
+        m_cstInfo[iJet][iCst].SetDR( hypot(dfCst, dhCst) );
 
       }  // end cst loop
     }  // end jet loop
@@ -225,7 +194,7 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // loop over lambdas
-    for (ParInfo& lambda : m_lambdaInfo) {
+    for (Types::ParInfo& lambda : m_lambdaInfo) {
 
       optional<int> iAssocJet = nullopt;
       switch (m_config.associator) {
@@ -250,9 +219,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
       // assign associated jet
       if (iAssocJet.has_value()) {
-        m_mapLambdaJetAssoc[lambda.barcode] = iAssocJet.value();
+        m_mapLambdaJetAssoc[lambda.GetBarcode()] = iAssocJet.value();
       } else {
-        m_mapLambdaJetAssoc[lambda.barcode] = -1;
+        m_mapLambdaJetAssoc[lambda.GetBarcode()] = -1;
       }
     }  // end lambda loop
     return;
@@ -273,37 +242,37 @@ namespace SColdQcdCorrelatorAnalysis {
     m_evtNJets       = m_jetInfo.size();
     m_evtNLambdas    = m_mapLambdaJetAssoc.size();
     m_evtNTaggedJets = GetNTaggedJets();
-    m_evtNChrgPars   = m_genEvtInfo.nChrgPar;
-    m_evtNNeuPars    = m_genEvtInfo.nNeuPar;
-    m_evtSumEPar     = m_genEvtInfo.eSumChrg + m_genEvtInfo.eSumNeu;
-    m_evtVtxX        = m_genEvtInfo.partons.first.vx;
-    m_evtVtxY        = m_genEvtInfo.partons.first.vy;
-    m_evtVtxZ        = m_genEvtInfo.partons.first.vz;
+    m_evtNChrgPars   = m_genEvtInfo.GetNChrgPar();
+    m_evtNNeuPars    = m_genEvtInfo.GetNNeuPar();
+    m_evtSumEPar     = (m_genEvtInfo.GetESumChrg() + m_genEvtInfo.GetESumNeu());
+    m_evtVtxX        = m_genEvtInfo.GetPartonA().GetVX();
+    m_evtVtxY        = m_genEvtInfo.GetPartonA().GetVY();
+    m_evtVtxZ        = m_genEvtInfo.GetPartonA().GetVZ();
 
     // collect parton info
     //   - FIXME remove when i/o of utility structs is ready
-    m_evtPartID = make_pair( m_genEvtInfo.partons.first.pid, m_genEvtInfo.partons.second.pid );
-    m_evtPartPx = make_pair( m_genEvtInfo.partons.first.px,  m_genEvtInfo.partons.second.px  );
-    m_evtPartPy = make_pair( m_genEvtInfo.partons.first.py,  m_genEvtInfo.partons.second.py  );
-    m_evtPartPz = make_pair( m_genEvtInfo.partons.first.pz,  m_genEvtInfo.partons.second.pz  );
-    m_evtPartE  = make_pair( m_genEvtInfo.partons.first.ene, m_genEvtInfo.partons.second.ene );
+    m_evtPartID = make_pair( m_genEvtInfo.GetPartonA().GetPID(), m_genEvtInfo.GetPartonB().GetPID() );
+    m_evtPartPx = make_pair( m_genEvtInfo.GetPartonA().GetPX(),  m_genEvtInfo.GetPartonB().GetPX()  );
+    m_evtPartPy = make_pair( m_genEvtInfo.GetPartonA().GetPY(),  m_genEvtInfo.GetPartonB().GetPY()  );
+    m_evtPartPz = make_pair( m_genEvtInfo.GetPartonA().GetPZ(),  m_genEvtInfo.GetPartonB().GetPZ()  );
+    m_evtPartE  = make_pair( m_genEvtInfo.GetPartonA().GetEne(), m_genEvtInfo.GetPartonB().GetEne() );
 
     // collect lambda information
     //   - FIXME remove when i/o of utility structs is ready
-    for (ParInfo& lambda : m_lambdaInfo) {
+    for (Types::ParInfo& lambda : m_lambdaInfo) {
 
       // collect general information
-      m_lambdaID.push_back( lambda.barcode );
-      m_lambdaPID.push_back( lambda.pid );
-      m_lambdaEmbedID.push_back( lambda.embedID );
-      m_lambdaE.push_back( lambda.ene );
-      m_lambdaPt.push_back( lambda.pt );
-      m_lambdaEta.push_back( lambda.eta );
-      m_lambdaPhi.push_back( lambda.phi );
+      m_lambdaID.push_back( lambda.GetBarcode() );
+      m_lambdaPID.push_back( lambda.GetPID() );
+      m_lambdaEmbedID.push_back( lambda.GetEmbedID() );
+      m_lambdaE.push_back( lambda.GetEne() );
+      m_lambdaPt.push_back( lambda.GetPT() );
+      m_lambdaEta.push_back( lambda.GetEta() );
+      m_lambdaPhi.push_back( lambda.GetPhi() );
 
       // collect associate jet information
-      m_lambdaJetID.push_back( m_mapLambdaJetAssoc[lambda.barcode] );
-      if (m_mapLambdaJetAssoc[lambda.barcode] > -1) {
+      m_lambdaJetID.push_back( m_mapLambdaJetAssoc[lambda.GetBarcode()] );
+      if (m_mapLambdaJetAssoc[lambda.GetBarcode()] > -1) {
         m_lambdaZ.push_back( GetLambdaAssocZ(lambda) );
         m_lambdaDr.push_back( GetLambdaAssocDr(lambda) );
       } else {
@@ -314,14 +283,14 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // collect jet information
     //   - FIXME remove when i/o of utility structs is ready
-    for (JetInfo& jet : m_jetInfo) {
+    for (Types::JetInfo& jet : m_jetInfo) {
       m_jetHasLambda.push_back( HasLambda(jet) );
-      m_jetNCst.push_back( jet.nCsts );
-      m_jetID.push_back( jet.jetID );
-      m_jetE.push_back( jet.ene );
-      m_jetPt.push_back( jet.pt );
-      m_jetEta.push_back( jet.eta );
-      m_jetPhi.push_back( jet.phi );
+      m_jetNCst.push_back( jet.GetNCsts() );
+      m_jetID.push_back( jet.GetJetID() );
+      m_jetE.push_back( jet.GetEne() );
+      m_jetPt.push_back( jet.GetPT() );
+      m_jetEta.push_back( jet.GetEta() );
+      m_jetPhi.push_back( jet.GetPhi() );
     }  // end jet loop
 
     // collect cst information
@@ -348,16 +317,16 @@ namespace SColdQcdCorrelatorAnalysis {
       m_cstEta[iJet].resize( m_cstInfo[iJet].size() );
       m_cstPhi[iJet].resize( m_cstInfo[iJet].size() );
       for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
-        m_cstID[iJet][iCst]      = m_cstInfo[iJet][iCst].cstID;
-        m_cstPID[iJet][iCst]     = m_cstInfo[iJet][iCst].pid;
-        m_cstJetID[iJet][iCst]   = m_cstInfo[iJet][iCst].jetID;
-        m_cstEmbedID[iJet][iCst] = m_cstInfo[iJet][iCst].embedID;
-        m_cstZ[iJet][iCst]       = m_cstInfo[iJet][iCst].z;
-        m_cstDr[iJet][iCst]      = m_cstInfo[iJet][iCst].dr;
-        m_cstE[iJet][iCst]       = m_cstInfo[iJet][iCst].ene;
-        m_cstPt[iJet][iCst]      = m_cstInfo[iJet][iCst].pt;
-        m_cstEta[iJet][iCst]     = m_cstInfo[iJet][iCst].eta;
-        m_cstPhi[iJet][iCst]     = m_cstInfo[iJet][iCst].phi;
+        m_cstID[iJet][iCst]      = m_cstInfo[iJet][iCst].GetCstID();
+        m_cstPID[iJet][iCst]     = m_cstInfo[iJet][iCst].GetPID();
+        m_cstJetID[iJet][iCst]   = m_cstInfo[iJet][iCst].GetJetID();
+        m_cstEmbedID[iJet][iCst] = m_cstInfo[iJet][iCst].GetEmbedID();
+        m_cstZ[iJet][iCst]       = m_cstInfo[iJet][iCst].GetZ();
+        m_cstDr[iJet][iCst]      = m_cstInfo[iJet][iCst].GetDR();
+        m_cstE[iJet][iCst]       = m_cstInfo[iJet][iCst].GetEne();
+        m_cstPt[iJet][iCst]      = m_cstInfo[iJet][iCst].GetPT();
+        m_cstEta[iJet][iCst]     = m_cstInfo[iJet][iCst].GetEta();
+        m_cstPhi[iJet][iCst]     = m_cstInfo[iJet][iCst].GetPhi();
       }
     }  // end cst loop
 
@@ -381,7 +350,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  bool SLambdaJetHunter::HasLambda(JetInfo& jet) {
+  bool SLambdaJetHunter::HasLambda(Types::JetInfo& jet) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
@@ -390,7 +359,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
     bool hasLambda = false;
     for (auto& [lamID, jetID]: m_mapLambdaJetAssoc) {
-      if (jetID == (int) jet.jetID) {
+      if (jetID == (int) jet.GetJetID()) {
         hasLambda = true;
         break;
       }
@@ -401,7 +370,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  bool SLambdaJetHunter::IsGoodParticle(ParInfo& particle) {
+  bool SLambdaJetHunter::IsGoodParticle(Types::ParInfo& particle) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
@@ -411,12 +380,12 @@ namespace SColdQcdCorrelatorAnalysis {
     // check charge if needed
     bool isGoodCharge = true;
     if (m_config.isCharged) {
-      isGoodCharge = (particle.charge != 0.);
+      isGoodCharge = (particle.GetCharge() != 0.);
     }
 
     // FIXME overloaded <, etc. operators aren't behaving as expected
-    const bool isInPtAccept  = ((particle.pt > m_config.parAccept.first.pt) && (particle.pt < m_config.parAccept.second.pt));
-    const bool isInEtaAccept = ((particle.eta > m_config.parAccept.first.eta) && (particle.eta < m_config.parAccept.second.eta));
+    const bool isInPtAccept  = ((particle.GetPT() > m_config.parAccept.first.GetPT()) && (particle.GetPT() < m_config.parAccept.second.GetPT()));
+    const bool isInEtaAccept = ((particle.GetEta() > m_config.parAccept.first.GetEta()) && (particle.GetEta() < m_config.parAccept.second.GetEta()));
 
     // run other checks and return
     const bool isInAccept = (isInPtAccept && isInEtaAccept);
@@ -426,7 +395,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  bool SLambdaJetHunter::IsGoodLambda(ParInfo& lambda) {
+  bool SLambdaJetHunter::IsGoodLambda(Types::ParInfo& lambda) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
@@ -434,8 +403,8 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // FIXME overloaded <, etc. operators aren't behaving as expected
-    const bool isInPtAccept  = ((lambda.pt > m_config.parAccept.first.pt) && (lambda.pt < m_config.parAccept.second.pt));
-    const bool isInEtaAccept = ((lambda.eta > m_config.parAccept.first.eta) && (lambda.eta < m_config.parAccept.second.eta));
+    const bool isInPtAccept  = ((lambda.GetPT() > m_config.parAccept.first.GetPT()) && (lambda.GetPT() < m_config.parAccept.second.GetPT()));
+    const bool isInEtaAccept = ((lambda.GetEta() > m_config.parAccept.first.GetEta()) && (lambda.GetEta() < m_config.parAccept.second.GetEta()));
 
     // make sure lambda is in acceptance
     const bool isInAccept = (isInPtAccept && isInEtaAccept);
@@ -483,7 +452,7 @@ namespace SColdQcdCorrelatorAnalysis {
     m_vecVtxToCheck.clear();
     m_vecVtxToCheck.push_back(vtxStart);
 
-    // breadth-first search of all connected vertices for particle w/ barcode 'idToFind'
+    // search of all connected vertices for particle w/ barcode 'idToFind'
     int  nVtxChecked     = 0;
     bool isParticleFound = false;
     while (!isParticleFound && (nVtxChecked < m_const.maxVtxToCheck)) {
@@ -536,7 +505,7 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // grab truth information
-    PHG4TruthInfoContainer*            container = GetTruthContainer(topNode);
+    PHG4TruthInfoContainer*            container = Interfaces::GetTruthContainer(topNode);
     PHG4TruthInfoContainer::ConstRange particles = container -> GetParticleRange();
 
     // loop over particles
@@ -580,7 +549,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  double SLambdaJetHunter::GetLambdaAssocZ(ParInfo& lambda) {
+  double SLambdaJetHunter::GetLambdaAssocZ(Types::ParInfo& lambda) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
@@ -588,11 +557,11 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // get index of associated jet
-    const int iAssoc = m_mapLambdaJetAssoc[lambda.barcode];
+    const int iAssoc = m_mapLambdaJetAssoc[lambda.GetBarcode()];
 
     // get total momenta
-    const double pJet    = hypot(m_jetInfo.at(iAssoc).px, m_jetInfo.at(iAssoc).py, m_jetInfo.at(iAssoc).pz);
-    const double pLambda = hypot(lambda.px, lambda.py, lambda.pz);
+    const double pJet    = hypot(m_jetInfo.at(iAssoc).GetPX(), m_jetInfo.at(iAssoc).GetPY(), m_jetInfo.at(iAssoc).GetPZ());
+    const double pLambda = hypot(lambda.GetPX(), lambda.GetPY(), lambda.GetPZ());
 
     // calculate z and return
     const double zLambda = pLambda / pJet;
@@ -602,7 +571,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  double SLambdaJetHunter::GetLambdaAssocDr(ParInfo& lambda) {
+  double SLambdaJetHunter::GetLambdaAssocDr(Types::ParInfo& lambda) {
 
     // print debug statement
     if (m_config.isDebugOn && (m_config.verbosity > 5)) {
@@ -610,15 +579,15 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // get index of associated jet
-    const int iAssoc = m_mapLambdaJetAssoc[lambda.barcode];
+    const int iAssoc = m_mapLambdaJetAssoc[lambda.GetBarcode()];
 
     // calculate delta-phi
-    double dfLambda = lambda.phi - m_jetInfo.at(iAssoc).phi;
+    double dfLambda = lambda.GetPhi() - m_jetInfo.at(iAssoc).GetPhi();
     if (dfLambda < 0.)             dfLambda += TMath::TwoPi();
     if (dfLambda > TMath::TwoPi()) dfLambda -= TMath::TwoPi();
 
     // calculate dr and return
-    const double dhLambda = lambda.eta - m_jetInfo.at(iAssoc).eta;
+    const double dhLambda = lambda.GetEta() - m_jetInfo.at(iAssoc).GetEta();
     const double drLambda = hypot(dfLambda, dhLambda);
     return drLambda;
 
@@ -643,7 +612,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  optional<int> SLambdaJetHunter::HuntLambdasByBarcode(ParInfo& lambda) {
+  optional<int> SLambdaJetHunter::HuntLambdasByBarcode(Types::ParInfo& lambda) {
 
     // print debug statement
     if (m_config.isDebugOn) {
@@ -657,7 +626,7 @@ namespace SColdQcdCorrelatorAnalysis {
     bool foundAssocJet = false;
     for (size_t iJet = 0; iJet < m_jetInfo.size(); iJet++) {
       for (size_t iCst = 0; iCst < m_cstInfo[iJet].size(); iCst++) {
-        if (m_cstInfo[iJet][iCst].cstID == lambda.barcode) {
+        if (m_cstInfo[iJet][iCst].GetCstID() == lambda.GetBarcode()) {
           foundAssocJet = true;
           iAssocJet     = iJet;
           break;
@@ -674,7 +643,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  optional<int> SLambdaJetHunter::HuntLambdasByDecayChain(ParInfo& lambda, PHCompositeNode* topNode) {
+  optional<int> SLambdaJetHunter::HuntLambdasByDecayChain(Types::ParInfo& lambda, PHCompositeNode* topNode) {
 
     // print debug statement
     if (m_config.isDebugOn) {
@@ -685,7 +654,7 @@ namespace SColdQcdCorrelatorAnalysis {
     optional<int> iAssocJet = nullopt;
 
     // grab PHG4 and HepMC information
-    HepMC::GenParticle* hepLambda = GetHepMCGenParticleFromBarcode(lambda.barcode, topNode);
+    HepMC::GenParticle* hepLambda = Tools::GetHepMCGenParticleFromBarcode(lambda.GetBarcode(), topNode);
     HepMC::GenVertex*   hepEndVtx = hepLambda -> end_vertex();
 
     // loop over constituents and check which cst.s the lambda decayed into
@@ -696,9 +665,9 @@ namespace SColdQcdCorrelatorAnalysis {
         // check if constituent is in decay chain,
         bool isInDecayChain = false;
         if (hepEndVtx) {
-          isInDecayChain = IsInHepMCDecayChain(m_cstInfo[iJet][iCst].cstID, hepEndVtx);
+          isInDecayChain = IsInHepMCDecayChain(m_cstInfo[iJet][iCst].GetCstID(), hepEndVtx);
         } else {
-          isInDecayChain = IsInPHG4DecayChain(m_cstInfo[iJet][iCst].cstID, lambda.barcode, topNode);
+          isInDecayChain = IsInPHG4DecayChain(m_cstInfo[iJet][iCst].GetCstID(), lambda.GetBarcode(), topNode);
         }
 
         // if so, add lambda to lists
@@ -719,7 +688,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
-  optional<int> SLambdaJetHunter::HuntLambdasByDistance(ParInfo& lambda) {
+  optional<int> SLambdaJetHunter::HuntLambdasByDistance(Types::ParInfo& lambda) {
 
     // print debug statement
     if (m_config.isDebugOn) {
@@ -734,12 +703,12 @@ namespace SColdQcdCorrelatorAnalysis {
     for (size_t iJet = 0; iJet < m_jetInfo.size(); iJet++) {
 
       // calculate delta-phi
-      double dfAssoc = lambda.phi - m_jetInfo[iJet].phi;
+      double dfAssoc = lambda.GetPhi() - m_jetInfo[iJet].GetPhi();
       if (dfAssoc < 0.)             dfAssoc += TMath::TwoPi();
       if (dfAssoc > TMath::TwoPi()) dfAssoc -= TMath::TwoPi();
 
       // calculate dr
-      const double dhAssoc = lambda.eta - m_jetInfo[iJet].eta;
+      const double dhAssoc = lambda.GetEta() - m_jetInfo[iJet].GetEta();
       const double drAssoc = hypot(dfAssoc, dhAssoc);
 
       // check if lambda is within rJet
@@ -755,7 +724,5 @@ namespace SColdQcdCorrelatorAnalysis {
   }  // end 'HuntLambdasByDistance(ParInfo& lambda)'
 
 }  // end SColdQcdCorrelatorAnalysis namespace
-
-#endif
 
 // end ------------------------------------------------------------------------

@@ -9,20 +9,15 @@
 
 #define SLAMBDAJETHUNTER_CC
 
-// f4a utilities
-#include <fun4all/Fun4AllReturnCodes.h>
-// phool utilities
-#include <phool/PHCompositeNode.h>
 // analysis utilities
 #include "SLambdaJetHunter.h"
-#include "SLambdaJetHunter.ana.h"
 #include "SLambdaJetHunter.sys.h"
+#include "SLambdaJetHunter.ana.h"
 #include "SLambdaJetHunterConfig.h"
 
 // make common namespaces implicit
 using namespace std;
 using namespace fastjet;
-using namespace SColdQcdCorrelatorAnalysis::SCorrelatorUtilities;
 
 
 

@@ -9,16 +9,8 @@
 #ifndef SLAMBDAJETHUNTERCONFIG_H
 #define SLAMBDAJETHUNTERCONFIG_H
 
-// c++ utilities
-#include <string>
-#include <vector>
-#include <utility>
-// analysis utilities
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/SCorrelatorUtilities.h"
-
 // make common namespaces implicit
 using namespace std;
-using namespace SColdQcdCorrelatorAnalysis::SCorrelatorUtilities;
 
 
 
@@ -43,11 +35,13 @@ namespace SColdQcdCorrelatorAnalysis {
     string jetAlgo    = "antikt_algorithm";
     string jetRecomb  = "pt_scheme";
 
-    // acceptance parameters
-    pair<float,   float>   vzAccept;
-    pair<float,   float>   vrAccept;
-    pair<ParInfo, ParInfo> parAccept;
-    pair<JetInfo, JetInfo> jetAccept;
+    // vertex cuts
+    pair<float, float> vzAccept;
+    pair<float, float> vrAccept;
+
+    // particle & jet cuts
+    pair<Types::ParInfo, Types::ParInfo> parAccept;
+    pair<Types::JetInfo, Types::JetInfo> jetAccept;
 
   };
 

@@ -15,33 +15,48 @@
 
 // c++ utilities
 #include <map>
+#include <cmath>
+#include <limits>
 #include <string>
 #include <vector>
+#include <cassert>
+#include <utility>
 #include <optional>
 // root libraries
 #include <TFile.h>
 #include <TTree.h>
+#include <TMath.h>
 // fastjet libraries
 #include <fastjet/PseudoJet.hh>
 #include <fastjet/JetDefinition.hh>
+#include <fastjet/ClusterSequence.hh>
+#include <fastjet/FunctionOfPseudoJet.hh>
 // hepmc libraries
+#include <HepMC/GenEvent.h>
 #include <HepMC/GenVertex.h>
 #include <HepMC/GenParticle.h>
+// phool utilities
+#include <phool/PHCompositeNode.h>
 // f4a utilities
 #include <fun4all/SubsysReco.h>
+#include <fun4all/Fun4AllReturnCodes.h>
+// PHG4 libraries
+#include <g4main/PHG4Particle.h>
+#include <g4main/PHG4Particlev2.h>
+#include <g4main/PHG4TruthInfoContainer.h>
 // analysis utilities
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/Tools.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/Types.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/Constants.h"
+#include "/sphenix/user/danderson/install/include/scorrelatorutilities/Interfaces.h"
+// analysis definitions
 #include "SLambdaJetHunterConfig.h"
-#include "/sphenix/user/danderson/install/include/scorrelatorutilities/SCorrelatorUtilities.h"
 
 #pragma GCC diagnostic pop
 
 // make common namespaces implicit
 using namespace std;
 using namespace fastjet;
-using namespace SColdQcdCorrelatorAnalysis::SCorrelatorUtilities;
-
-// forward declarations
-class PHCompositeNode;
 
 
 
@@ -51,7 +66,7 @@ namespace SColdQcdCorrelatorAnalysis {
 
   class SLambdaJetHunter : public SubsysReco {
 
-     public:
+    public:
 
       enum Associator { Barcode, Decay, Distance };
 
@@ -81,10 +96,10 @@ namespace SColdQcdCorrelatorAnalysis {
       SLambdaJetHunterConfig m_config;
 
       // output variables
-      GenInfo                 m_genEvtInfo;
-      vector<ParInfo>         m_lambdaInfo;
-      vector<JetInfo>         m_jetInfo;
-      vector<vector<CstInfo>> m_cstInfo;
+      Types::GenInfo                 m_genEvtInfo;
+      vector<Types::ParInfo>         m_lambdaInfo;
+      vector<Types::JetInfo>         m_jetInfo;
+      vector<vector<Types::CstInfo>> m_cstInfo;
 
       // vectors for internal calculations
       vector<int>               m_vecSubEvts;
@@ -152,31 +167,25 @@ namespace SColdQcdCorrelatorAnalysis {
       void          AssociateLambdasToJets(PHCompositeNode* topNode);
       void          FillOutputTree();
       bool          HasParentInfo(const int parent);
-      bool          HasLambda(JetInfo& jet);
-      bool          IsGoodParticle(ParInfo& particle);
-      bool          IsGoodLambda(ParInfo& lambda);
+      bool          HasLambda(Types::JetInfo& jet);
+      bool          IsGoodParticle(Types::ParInfo& particle);
+      bool          IsGoodLambda(Types::ParInfo& lambda);
       bool          IsLambda(const int pid);
       bool          IsNewLambda(const int id);
       bool          IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxToStart);
       bool          IsInPHG4DecayChain(const int idToFind, const int idLambda, PHCompositeNode* topNode);
-      double        GetLambdaAssocZ(ParInfo& lambda);
-      double        GetLambdaAssocDr(ParInfo& lambda);
+      double        GetLambdaAssocZ(Types::ParInfo& lambda);
+      double        GetLambdaAssocDr(Types::ParInfo& lambda);
       uint64_t      GetNTaggedJets();
-      optional<int> HuntLambdasByBarcode(ParInfo& lambda);
-      optional<int> HuntLambdasByDecayChain(ParInfo& lambda, PHCompositeNode* topNode);
-      optional<int> HuntLambdasByDistance(ParInfo& lambda);
+      optional<int> HuntLambdasByBarcode(Types::ParInfo& lambda);
+      optional<int> HuntLambdasByDecayChain(Types::ParInfo& lambda, PHCompositeNode* topNode);
+      optional<int> HuntLambdasByDistance(Types::ParInfo& lambda);
 
       // system methods (*.sys.h)
       void InitTree();
       void InitOutput();
       void SaveAndCloseOutput();
       void ResetOutput();
-
-      // class-wide constants
-      struct Const {
-        int pidLambda;
-        int maxVtxToCheck;
-      }  m_const = {3122, 500};
 
       // map of user input onto fastjet options
       map<string, fastjet::JetAlgorithm> m_mapJetAlgo = {
@@ -202,6 +211,12 @@ namespace SColdQcdCorrelatorAnalysis {
         {"WTA_modp_scheme", fastjet::RecombinationScheme::WTA_modp_scheme},
         {"external_scheme", fastjet::RecombinationScheme::external_scheme}
       };
+
+      // class-wide constants
+      struct SLambdaJetHunterConsts {
+        int pidLambda;
+        int maxVtxToCheck;
+      }  m_const = {3122, 500};
 
   };  // end SLambdaJetHunter
 
