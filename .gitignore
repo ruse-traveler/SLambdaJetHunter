@@ -2,6 +2,7 @@ reference/
 backup/
 output/
 submit/
+plots/
 src/*
 !src/SLambdaJetHunter.h
 !src/SLambdaJetHunter.cc
