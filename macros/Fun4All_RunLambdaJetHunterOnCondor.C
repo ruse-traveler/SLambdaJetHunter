@@ -1,10 +1,11 @@
-// ----------------------------------------------------------------------------
-// 'Fun4All_RunLambdaJetHunter.C'
-// Derek Anderson
-// 01.25.2024
-//
-// F4A macro the SLambdaJetHunter module.
-// ----------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
+/*! \file   Fun4All_RunLambdaJetHunter.C
+ *  \author Derek Anderson
+ *  \date   01.25.2024
+ *
+ *  F4A macro the SLambdaJetHunter module.
+ */
+/// ---------------------------------------------------------------------------
 
 #define FUN4ALL_RUNLAMBDAJETHUNTER_C
 

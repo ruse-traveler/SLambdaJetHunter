@@ -1,10 +1,11 @@
-// ----------------------------------------------------------------------------
-// 'LambdaJetHunterOptions.h'
-// Derek Anderson
-// 01.25.2024
-//
-// Options for the SLambdaJetHunter module.
-// ----------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
+/*! \file   LambdaJetHunterOptions.h
+ *  \author Derek Anderson
+ *  \date   01.25.2024
+ *
+ *  Options for the SLambdaJetHunter module.
+ */
+/// ---------------------------------------------------------------------------
 
 #ifndef LAMBDAJETHUNTEROPTIONS_H
 #define LAMBDAJETHUNTEROPTIONS_H 
@@ -27,7 +28,7 @@ using namespace SColdQcdCorrelatorAnalysis;
 
 namespace LambdaJetHunterOptions {
 
-  // acceptance cuts ----------------------------------------------------------
+  // acceptance cuts ==========================================================
 
   // event acceptance
   const pair<float, float> vzEvtRange = {-10., 10.};
@@ -43,8 +44,11 @@ namespace LambdaJetHunterOptions {
 
 
 
-  // bundle acceptances into pairs --------------------------------------------
+  // bundle acceptances into pairs ============================================
 
+  // --------------------------------------------------------------------------
+  //! Bundle particle acceptance cuts into a pair
+  // --------------------------------------------------------------------------
   pair<Types::ParInfo, Types::ParInfo> GetParAccept() {
 
     // create maximal range
@@ -64,6 +68,9 @@ namespace LambdaJetHunterOptions {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Bundle jet acceptance cuts into a pair
+  // --------------------------------------------------------------------------
   pair<Types::JetInfo, Types::JetInfo> GetJetAccept() {
 
     // create maximal range
@@ -83,8 +90,11 @@ namespace LambdaJetHunterOptions {
 
 
 
-  // set up configuration -----------------------------------------------------
+  // set up configuration =====================================================
 
+  // --------------------------------------------------------------------------
+  //! Generate lambda-jet hunter configuration 
+  // --------------------------------------------------------------------------
   SLambdaJetHunterConfig GetConfig(const int verbosity, const string outFile) {
 
     SLambdaJetHunterConfig cfg {

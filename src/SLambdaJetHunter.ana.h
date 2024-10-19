@@ -1,11 +1,12 @@
-// ----------------------------------------------------------------------------
-// 'SLambdaJetHunter.ana.h'
-// Derek Anderson
-// 01.25.2024
-//
-// A minimal analysis module to find lambda-tagged
-// jets in pythia events.
-// ----------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
+/*! \file   SLambdaJetHunter.ana.h
+ *  \author Derek Anderson
+ *  \date   01.25.2024
+ *
+ *  A minimal analysis module to find lambda-tagged
+ *  jets in pythia events.
+ */
+/// ---------------------------------------------------------------------------
 
 #pragma once
 
@@ -18,8 +19,11 @@ using namespace findNode;
 
 namespace SColdQcdCorrelatorAnalysis {
 
-  // analysis methods ---------------------------------------------------------
+  // analysis methods =========================================================
 
+  // --------------------------------------------------------------------------
+  //! Grab event-level information
+  // --------------------------------------------------------------------------
   void SLambdaJetHunter::GrabEventInfo(PHCompositeNode* topNode) {
 
     // print debug statement
@@ -27,11 +31,7 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::GrabEventInfo(PHCompositeNode*) Grabbing event info" << endl;
     }
 
-    // FIXME turn on checking all subevents after
-    //   confirming issue with overloaded operators
-    //   is fixed
-    //m_vecSubEvts = GrabSubevents(topNode);
-    m_vecSubEvts = {Const::SubEvt::NotEmbedSignal};
+    m_vecSubEvts = Tools::GrabSubevents(topNode);
     m_genEvtInfo.SetInfo(topNode, m_config.isEmbed, m_vecSubEvts);
     return;
 
@@ -39,6 +39,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Find all lambds in event
+  // --------------------------------------------------------------------------
   void SLambdaJetHunter::FindLambdas(PHCompositeNode* topNode) {
 
     // print debug statement
@@ -83,6 +86,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Reconstruct jets in an event
+  // --------------------------------------------------------------------------
   void SLambdaJetHunter::MakeJets(PHCompositeNode* topNode) {
 
     // print debug statement
@@ -112,7 +118,12 @@ namespace SColdQcdCorrelatorAnalysis {
         if (!isParGood || !particle.IsFinalState()) continue;
 
         // make pseudojet
-        PseudoJet pseudo(particle.GetPX(), particle.GetPY(), particle.GetPZ(), particle.GetEne());
+        PseudoJet pseudo(
+          particle.GetPX(),
+          particle.GetPY(),
+          particle.GetPZ(),
+          particle.GetEne()
+        );
         pseudo.set_user_index(particle.GetBarcode());
         vecPseudoJets.push_back(pseudo);
 
@@ -121,9 +132,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
     // set jet definition
     JetDefinition definition(
-      m_mapJetAlgo[m_config.jetAlgo],
+      Const::MapStringOntoFJAlgo()[m_config.jetAlgo],
       m_config.rJet,
-      m_mapRecomb[m_config.jetRecomb],
+      Const::MapStringOntoFJRecomb()[m_config.jetRecomb],
       fastjet::Best
     );
 
@@ -138,6 +149,10 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Set jet output information
+  // --------------------------------------------------------------------------
+  /* TODO move to a dedicated interface */
   void SLambdaJetHunter::CollectJetOutput(PHCompositeNode* topNode) {
 
     // print debug statement
@@ -186,6 +201,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Associate lambdas to jets using specified method
+  // --------------------------------------------------------------------------
   void SLambdaJetHunter::AssociateLambdasToJets(PHCompositeNode* topNode) {
 
     // print debug statement
@@ -230,6 +248,10 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Fill output tree
+  // --------------------------------------------------------------------------
+  /* TODO move to a dedicated interface */
   void SLambdaJetHunter::FillOutputTree() {
 
     // print debug statement
@@ -238,7 +260,6 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // collect event info
-    //   - FIXME remove when i/o of utility structs is ready
     m_evtNJets       = m_jetInfo.size();
     m_evtNLambdas    = m_mapLambdaJetAssoc.size();
     m_evtNTaggedJets = GetNTaggedJets();
@@ -250,7 +271,6 @@ namespace SColdQcdCorrelatorAnalysis {
     m_evtVtxZ        = m_genEvtInfo.GetPartonA().GetVZ();
 
     // collect parton info
-    //   - FIXME remove when i/o of utility structs is ready
     m_evtPartID = make_pair( m_genEvtInfo.GetPartonA().GetPID(), m_genEvtInfo.GetPartonB().GetPID() );
     m_evtPartPx = make_pair( m_genEvtInfo.GetPartonA().GetPX(),  m_genEvtInfo.GetPartonB().GetPX()  );
     m_evtPartPy = make_pair( m_genEvtInfo.GetPartonA().GetPY(),  m_genEvtInfo.GetPartonB().GetPY()  );
@@ -258,7 +278,6 @@ namespace SColdQcdCorrelatorAnalysis {
     m_evtPartE  = make_pair( m_genEvtInfo.GetPartonA().GetEne(), m_genEvtInfo.GetPartonB().GetEne() );
 
     // collect lambda information
-    //   - FIXME remove when i/o of utility structs is ready
     for (Types::ParInfo& lambda : m_lambdaInfo) {
 
       // collect general information
@@ -282,7 +301,6 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // collect jet information
-    //   - FIXME remove when i/o of utility structs is ready
     for (Types::JetInfo& jet : m_jetInfo) {
       m_jetHasLambda.push_back( HasLambda(jet) );
       m_jetNCst.push_back( jet.GetNCsts() );
@@ -294,7 +312,6 @@ namespace SColdQcdCorrelatorAnalysis {
     }  // end jet loop
 
     // collect cst information
-    //   - FIXME remove when i/o of utility structs is ready
     m_cstID.resize( m_cstInfo.size() );
     m_cstPID.resize( m_cstInfo.size() );
     m_cstJetID.resize( m_cstInfo.size() );
@@ -337,6 +354,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Check if a PHG4particle has a parent
+  // --------------------------------------------------------------------------
   bool SLambdaJetHunter::HasParentInfo(const int parent) {
 
     // print debug statement
@@ -350,6 +370,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Check if a jet has a lambda associated to it
+  // --------------------------------------------------------------------------
   bool SLambdaJetHunter::HasLambda(Types::JetInfo& jet) {
 
     // print debug statement
@@ -370,6 +393,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Check if a particle satisfies cuts
+  // --------------------------------------------------------------------------
   bool SLambdaJetHunter::IsGoodParticle(Types::ParInfo& particle) {
 
     // print debug statement
@@ -383,18 +409,17 @@ namespace SColdQcdCorrelatorAnalysis {
       isGoodCharge = (particle.GetCharge() != 0.);
     }
 
-    // FIXME overloaded <, etc. operators aren't behaving as expected
-    const bool isInPtAccept  = ((particle.GetPT() > m_config.parAccept.first.GetPT()) && (particle.GetPT() < m_config.parAccept.second.GetPT()));
-    const bool isInEtaAccept = ((particle.GetEta() > m_config.parAccept.first.GetEta()) && (particle.GetEta() < m_config.parAccept.second.GetEta()));
-
-    // run other checks and return
-    const bool isInAccept = (isInPtAccept && isInEtaAccept);
+    // apply particle cuts & return overall goodness
+    const bool isInAccept = particle.IsInAcceptance(m_config.parAccept);
     return (isGoodCharge && isInAccept);
 
   }  // end 'IsGoodParticle(ParInfo&)'
 
 
 
+  // --------------------------------------------------------------------------
+  //! Check if a lambda satisfies cuts
+  // --------------------------------------------------------------------------
   bool SLambdaJetHunter::IsGoodLambda(Types::ParInfo& lambda) {
 
     // print debug statement
@@ -402,18 +427,17 @@ namespace SColdQcdCorrelatorAnalysis {
       cout << "SLambdaJetHunter::IsGoodLambda(ParInfo&) checking if lambda is good" << endl;
     }
 
-    // FIXME overloaded <, etc. operators aren't behaving as expected
-    const bool isInPtAccept  = ((lambda.GetPT() > m_config.parAccept.first.GetPT()) && (lambda.GetPT() < m_config.parAccept.second.GetPT()));
-    const bool isInEtaAccept = ((lambda.GetEta() > m_config.parAccept.first.GetEta()) && (lambda.GetEta() < m_config.parAccept.second.GetEta()));
-
     // make sure lambda is in acceptance
-    const bool isInAccept = (isInPtAccept && isInEtaAccept);
+    const bool isInAccept = lambda.IsInAcceptance(m_config.parAccept);
     return isInAccept;
 
   }  // end 'IsGoodLambda(ParInfo&)'
 
 
 
+  // --------------------------------------------------------------------------
+  //! Check if pid corresponds to a lambda
+  // --------------------------------------------------------------------------
   bool SLambdaJetHunter::IsLambda(const int pid) {
 
     // print debug statement
@@ -427,6 +451,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Check if a lambda hasn't been found yet
+  // --------------------------------------------------------------------------
   bool SLambdaJetHunter::IsNewLambda(const int id) {
 
     // print debug statement
@@ -440,6 +467,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Check if a HepMC particle is in a decay chain
+  // --------------------------------------------------------------------------
   bool SLambdaJetHunter::IsInHepMCDecayChain(const int idToFind, HepMC::GenVertex* vtxStart) {
 
     // print debug statement
@@ -497,6 +527,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Check if a PHG4 particle is in a decay chain
+  // --------------------------------------------------------------------------
   bool SLambdaJetHunter::IsInPHG4DecayChain(const int idToFind, const int idLambda, PHCompositeNode* topNode) {
 
     // print debug statement
@@ -549,6 +582,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Calculate z between a lambda and its associated jet
+  // --------------------------------------------------------------------------
   double SLambdaJetHunter::GetLambdaAssocZ(Types::ParInfo& lambda) {
 
     // print debug statement
@@ -571,6 +607,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Calculate delta-r between a lambda and the axis of its associated jet
+  // --------------------------------------------------------------------------
   double SLambdaJetHunter::GetLambdaAssocDr(Types::ParInfo& lambda) {
 
     // print debug statement
@@ -595,6 +634,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Calculate the total no. of tagged jets
+  // --------------------------------------------------------------------------
   uint64_t SLambdaJetHunter::GetNTaggedJets() {
 
     // print debug statement
@@ -612,6 +654,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Associate lambda to a jet by inspecting constituents' barcodes
+  // --------------------------------------------------------------------------
   optional<int> SLambdaJetHunter::HuntLambdasByBarcode(Types::ParInfo& lambda) {
 
     // print debug statement
@@ -643,6 +688,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Associate lambda to a jet by inspecting constituents' decay chains
+  // --------------------------------------------------------------------------
   optional<int> SLambdaJetHunter::HuntLambdasByDecayChain(Types::ParInfo& lambda, PHCompositeNode* topNode) {
 
     // print debug statement
@@ -688,6 +736,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Associate lambda to a jet based on distance
+  // --------------------------------------------------------------------------
   optional<int> SLambdaJetHunter::HuntLambdasByDistance(Types::ParInfo& lambda) {
 
     // print debug statement

@@ -1,11 +1,12 @@
-// ----------------------------------------------------------------------------
-// 'SLambdaJetHunter.sys.h'
-// Derek Anderson
-// 01.25.2024
-//
-// A minimal analysis module to find lambda-tagged
-// jets in pythia events.
-// ----------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------
+/*! \file   SLambdaJetHunter.sys.h
+ *  \author Derek Anderson
+ *  \date   01.25.2024
+ *
+ *  A minimal analysis module to find lambda-tagged
+ *  jets in pythia events.
+ */
+/// ---------------------------------------------------------------------------
 
 #pragma once
 
@@ -16,8 +17,11 @@ using namespace std;
 
 namespace SColdQcdCorrelatorAnalysis {
 
-  // system methods -----------------------------------------------------------
+  // system methods ===========================================================
 
+  // --------------------------------------------------------------------------
+  //! Initialize output tree
+  // --------------------------------------------------------------------------
   void SLambdaJetHunter::InitTree() {
 
     // print debug statement
@@ -26,7 +30,7 @@ namespace SColdQcdCorrelatorAnalysis {
     }
 
     // set up output tree
-    //  - FIXME use utility structs instead when i/o is ready
+    //  - TODO move to a dedicated class + interface
     m_outTree = new TTree(m_config.outTreeName.data(), "A tree of lambda-tagged jets");
     m_outTree -> Branch("EvtNJets",       &m_evtNJets,         "EvtNJets/I");
     m_outTree -> Branch("EvtNLambdas",    &m_evtNLambdas,      "EvtNLambdas/I");
@@ -80,6 +84,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Open output file
+  // --------------------------------------------------------------------------
   void SLambdaJetHunter::InitOutput() {
 
     // print debug statement
@@ -98,6 +105,9 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Save output tree and close file
+  // --------------------------------------------------------------------------
   void SLambdaJetHunter::SaveAndCloseOutput() {
 
     // print debug statement
@@ -114,6 +124,10 @@ namespace SColdQcdCorrelatorAnalysis {
 
 
 
+  // --------------------------------------------------------------------------
+  //! Reset output addresses
+  // --------------------------------------------------------------------------
+  /*! TODO move to a dedicated class */
   void SLambdaJetHunter::ResetOutput() {
 
     // print debug statement
@@ -135,7 +149,6 @@ namespace SColdQcdCorrelatorAnalysis {
     m_vecVtxChecking.clear();
     m_mapLambdaJetAssoc.clear();
 
-    // FIXME remove when i/o of utility structs is ready
     m_evtNJets       = numeric_limits<uint64_t>::max();
     m_evtNLambdas    = numeric_limits<uint64_t>::max();
     m_evtNTaggedJets = numeric_limits<uint64_t>::max();
@@ -184,4 +197,3 @@ namespace SColdQcdCorrelatorAnalysis {
 }  // end SColdQcdCorrelatorAnalysis namespace
 
 // end ------------------------------------------------------------------------
-
