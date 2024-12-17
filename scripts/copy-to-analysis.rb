@@ -13,7 +13,7 @@ require 'fileutils'
 
 # top directory to copy from/to
 copy_from = "/sphenix/user/danderson/eec/SLambdaJetHunter"
-copy_to   = "/sphenix/user/danderson/sphenix/analysis/AndersonAnalysisModules/ColdQcdCorrelatorAnalysis/SLambdaJetHunter"
+copy_to   = "/sphenix/user/danderson/sphenix/analysis/EnergyCorrelatorsJets/ColdQCDENC/SLambdaJetHunter"
 
 # what files to copy
 to_copy = [
